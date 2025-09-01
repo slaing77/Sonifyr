@@ -13,9 +13,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 const birthDataSchema = z.object({
-  birthDate: z.string().min(1, "Birth date is required"),
-  birthTime: z.string().min(1, "Birth time is required"),
-  birthLocation: z.string().min(1, "Birth location is required"),
+  birthInfo: z.string().min(1, "Birth information is required").refine(
+    (value) => {
+      // Basic validation for format: mm/dd/yyyy time am/pm City, Country
+      const pattern = /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s+(am|pm)\s+.+,.+$/i;
+      return pattern.test(value.trim());
+    },
+    {
+      message: "Please use format: mm/dd/yyyy 00:00 am/pm City, Country (e.g., 3/15/1990 2:30 pm New York, USA)"
+    }
+  ),
 });
 
 type BirthData = z.infer<typeof birthDataSchema>;
@@ -30,9 +37,7 @@ export default function Landing() {
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
-      birthDate: "",
-      birthTime: "",
-      birthLocation: "",
+      birthInfo: "",
     },
   });
 
@@ -58,12 +63,33 @@ export default function Landing() {
       }
       
       setIsGenerating(true);
+      // Parse the birth info string
+      const birthInfoParts = data.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
+      
+      if (!birthInfoParts) {
+        throw new Error('Invalid birth info format. Please use: mm/dd/yyyy 00:00 am/pm City, Country');
+      }
+      
+      const [, month, day, year, hour, minute, ampm, location] = birthInfoParts;
+      
+      // Convert to 24-hour format
+      let hour24 = parseInt(hour);
+      if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
+        hour24 += 12;
+      } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
+        hour24 = 0;
+      }
+      
+      const birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      const birthTime = `${hour24.toString().padStart(2, '0')}:${minute}`;
+      const birthLocation = location.trim();
+      
       const response = await fetch('/api/generate-guest-playlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ birthDate, birthTime, birthLocation }),
       });
       if (!response.ok) {
         throw new Error('Failed to generate playlist');
@@ -126,42 +152,22 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="birthDate">Birth Date</Label>
+                    <Label htmlFor="birthInfo">Birth Information</Label>
                     <Input
-                      id="birthDate"
-                      type="date"
-                      data-testid="input-birth-date"
-                      {...form.register("birthDate")}
-                    />
-                    {form.formState.errors.birthDate && (
-                      <p className="text-sm text-red-500">{form.formState.errors.birthDate.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="birthTime">Birth Time</Label>
-                    <Input
-                      id="birthTime"
-                      type="time"
-                      data-testid="input-birth-time"
-                      {...form.register("birthTime")}
-                    />
-                    {form.formState.errors.birthTime && (
-                      <p className="text-sm text-red-500">{form.formState.errors.birthTime.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="birthLocation">Birth Location</Label>
-                    <Input
-                      id="birthLocation"
+                      id="birthInfo"
                       type="text"
-                      placeholder="City, Country"
-                      data-testid="input-birth-location"
-                      {...form.register("birthLocation")}
+                      placeholder="3/15/1990 2:30 pm New York, USA"
+                      data-testid="input-birth-info"
+                      {...form.register("birthInfo")}
+                      className="text-center"
                     />
-                    {form.formState.errors.birthLocation && (
-                      <p className="text-sm text-red-500">{form.formState.errors.birthLocation.message}</p>
+                    <p className="text-sm text-gray-500 text-center">
+                      Format: mm/dd/yyyy 00:00 am/pm City, Country
+                    </p>
+                    {form.formState.errors.birthInfo && (
+                      <p className="text-sm text-red-500 text-center">{form.formState.errors.birthInfo.message}</p>
                     )}
                   </div>
                 </div>
