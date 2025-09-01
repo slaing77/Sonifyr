@@ -42,14 +42,14 @@ export function SpotifyAuthDialog({ open, onOpenChange, onAuthSuccess }: Spotify
         // Store callback info for when user returns
         sessionStorage.setItem('spotifyAuthInProgress', 'true');
         
-        // Open Spotify auth in new window
+        // Try to open Spotify auth in new window
         const authWindow = window.open(
           data.authUrl, 
           'spotify-auth', 
-          'width=600,height=700,scrollbars=yes,resizable=yes'
+          'width=600,height=700,scrollbars=yes,resizable=yes,location=yes,status=yes'
         );
         
-        if (authWindow) {
+        if (authWindow && !authWindow.closed) {
           // Poll for auth completion
           const pollForAuth = setInterval(async () => {
             try {
@@ -84,13 +84,37 @@ export function SpotifyAuthDialog({ open, onOpenChange, onAuthSuccess }: Spotify
             }
           }, 1000);
           
+          // Focus the popup window
+          try {
+            authWindow.focus();
+          } catch (e) {
+            // Ignore focus errors
+          }
+          
           toast({
             title: "Spotify Login Opened",
             description: "Complete the login in the popup window to connect your account.",
-            duration: 5000,
+            duration: 8000,
           });
         } else {
-          throw new Error('Popup was blocked');
+          // Popup was blocked - provide fallback
+          setIsConnecting(false);
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups for this site, then try again. You can also manually visit the Spotify login page.",
+            variant: "destructive",
+            duration: 10000,
+          });
+          
+          // Provide manual fallback option
+          if (confirm('Popup was blocked. Would you like to open Spotify login in a new tab instead?')) {
+            window.open(data.authUrl, '_blank');
+            toast({
+              title: "Login Tab Opened",
+              description: "Complete Spotify login in the new tab, then return here and try exporting again.",
+              duration: 10000,
+            });
+          }
         }
       } else {
         throw new Error('No auth URL received');
@@ -128,6 +152,13 @@ export function SpotifyAuthDialog({ open, onOpenChange, onAuthSuccess }: Spotify
               <li>🔒 Secure connection - we never store your credentials</li>
               <li>📱 Works with free Spotify accounts</li>
             </ul>
+          </div>
+          
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-700">
+              💡 <strong>Important:</strong> This will open a popup window for Spotify login. 
+              Please allow popups for this site if prompted by your browser.
+            </p>
           </div>
           
           <div className="flex flex-col gap-2">
