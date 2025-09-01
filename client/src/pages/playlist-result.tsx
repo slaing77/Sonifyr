@@ -89,7 +89,7 @@ export default function PlaylistResult() {
                     </div>
                     <div className="mt-3 p-3 bg-white rounded border-l-4 border-purple-200">
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        <strong>🌟 Cosmic Connection:</strong> Selected based on your current planetary transits and birth chart energy
+                        <strong>🌟 Cosmic Connection:</strong> {song.astrologicalInfluence || 'Selected based on your current planetary transits and birth chart energy'}
                       </p>
                     </div>
                   </div>
