@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import ChatPage from "@/pages/chat";
 import Landing from "@/pages/landing";
+import PlaylistResult from "@/pages/playlist-result";
+import UpgradePage from "@/pages/upgrade";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import ProfileSetupPage from "@/pages/profile-setup";
@@ -45,6 +47,12 @@ function Router() {
       <Route path="/profile-setup">
         <ProfileSetupPage />
       </Route>
+      <Route path="/playlist-result">
+        <PlaylistResult />
+      </Route>
+      <Route path="/upgrade">
+        <UpgradePage />
+      </Route>
       
       {/* User-dependent routes */}
       {user ? (
@@ -76,6 +84,12 @@ function Router() {
           </Route>
           <Route path="/chat">
             <LoginPage />
+          </Route>
+          <Route path="/playlist-result">
+            <PlaylistResult />
+          </Route>
+          <Route path="/upgrade">
+            <UpgradePage />
           </Route>
         </>
       )}

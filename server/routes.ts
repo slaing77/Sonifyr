@@ -531,6 +531,30 @@ Each song is specifically chosen to align with the daily planetary energies you'
     }
   });
 
+  // Generate guest playlist without authentication (FREE VERSION ENDPOINT)
+  app.post("/api/generate-guest-playlist", async (req, res) => {
+    try {
+      const { birthDate, birthTime, birthLocation } = req.body;
+      
+      if (!birthDate || !birthTime || !birthLocation) {
+        return res.status(400).json({ error: "Birth information required" });
+      }
+
+      // Generate playlist using AI service
+      const playlistData = await openAIService.generatePlaylist({
+        date: birthDate,
+        time: birthTime,
+        location: birthLocation,
+      }, null); // No music profile for guest users
+
+      // Return the playlist data directly (no database storage for guests)
+      res.json(playlistData);
+    } catch (error) {
+      console.error("Error generating guest playlist:", error);
+      res.status(500).json({ error: "Failed to generate playlist" });
+    }
+  });
+
   // Get weekly horoscope with daily breakdowns (NEW ENDPOINT)
   app.post("/api/horoscope/:sessionId/weekly", requireCompleteProfile, async (req, res) => {
     try {

@@ -1,149 +1,264 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Music, Star } from "lucide-react";
-import { Link } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sparkles, Music, Star, Crown } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+const birthDataSchema = z.object({
+  birthDate: z.string().min(1, "Birth date is required"),
+  birthTime: z.string().min(1, "Birth time is required"),
+  birthLocation: z.string().min(1, "Birth location is required"),
+});
+
+type BirthData = z.infer<typeof birthDataSchema>;
 
 export default function Landing() {
-  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [canGenerate, setCanGenerate] = useState(true);
+  const [lastGeneratedDate, setLastGeneratedDate] = useState<string | null>(null);
 
-  // Alternating text content as requested
-  const textVariations = [
-    {
-      title: "AI-curated music to match your individual weekly planetary transits",
-      subtitle: "Let our AI astrologer create a personalized 7-song weekly playlist based on your birth chart and current planetary movements."
+  const form = useForm<BirthData>({
+    resolver: zodResolver(birthDataSchema),
+    defaultValues: {
+      birthDate: "",
+      birthTime: "",
+      birthLocation: "",
     },
-    {
-      title: "AI-Powered Curation",
-      subtitle: "Experience musical alchemy— Your celestial blueprint guides our Astro Agent in transmuting planetary patterns into sound. Each note resonates with the energy of your chart and the shifting skies."
-    }
-  ];
+  });
 
-  // Feature descriptions with alternating content
-  const featureDescriptions = [
-    [
-      {
-        title: "AI-Powered Curation",
-        content: "Experience musical alchemy— Your celestial blueprint guides our Astro Agent in transmuting planetary patterns into sound. Each note resonates with the energy of your chart and the shifting skies."
-      },
-      {
-        title: "Astrological Insights",
-        content: "Unlock personalized horoscopes crafted from real-time planetary movements and precise birth chart readings powered by Swiss Ephemeris and Immanuel."
-      },
-      {
-        title: "Spotify Integration", 
-        content: "Your stars, your soundtrack. Send your daily horoscope playlist straight to Spotify and carry the cosmos in your pocket."
-      }
-    ],
-    [
-      {
-        title: "Musical Alchemy",
-        content: "Our Astro Agent transmutes planetary patterns into sound. Each note resonates with the energy of your chart and the shifting skies. Get your horoscope as a soundscape!"
-      },
-      {
-        title: "Astrological Insights",
-        content: "Unlock personalized horoscopes crafted from real-time planetary movements and precise birth chart readings powered by Swiss Ephemeris and Immanuel."
-      },
-      {
-        title: "Spotify Integration",
-        content: "Your stars, your soundtrack. Send your daily horoscope playlist straight to Spotify and carry the cosmos in your pocket."
-      }
-    ]
-  ];
-
-  // Rotate text every 8 seconds
+  // Check weekly limit on component mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTextIndex((prev) => (prev + 1) % textVariations.length);
-    }, 8000);
-
-    return () => clearInterval(interval);
+    const lastGenerated = localStorage.getItem('lastPlaylistGenerated');
+    if (lastGenerated) {
+      const lastDate = new Date(lastGenerated);
+      const now = new Date();
+      const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+      
+      if (daysDiff < 7) {
+        setCanGenerate(false);
+        setLastGeneratedDate(lastDate.toLocaleDateString());
+      }
+    }
   }, []);
 
-  const currentText = textVariations[currentTextIndex];
-  const currentFeatures = featureDescriptions[currentTextIndex];
+  const generatePlaylist = useMutation({
+    mutationFn: async (data: BirthData) => {
+      if (!canGenerate) {
+        throw new Error('You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!');
+      }
+      
+      setIsGenerating(true);
+      const response = await fetch('/api/generate-guest-playlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to generate playlist');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setIsGenerating(false);
+      // Store the generated playlist data in localStorage for the results page
+      localStorage.setItem('guestPlaylist', JSON.stringify(data));
+      // Track when the playlist was generated for weekly limit
+      localStorage.setItem('lastPlaylistGenerated', new Date().toISOString());
+      setCanGenerate(false);
+      setLocation('/playlist-result');
+    },
+    onError: (error: any) => {
+      setIsGenerating(false);
+      toast({
+        title: "Error generating playlist",
+        description: error?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: BirthData) => {
+    generatePlaylist.mutate(data);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="mb-12">
+          <div className="text-center mb-12">
             <div className="flex justify-center mb-6">
               <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
                 <Music className="h-12 w-12 text-white" />
               </div>
             </div>
             <h1 className="text-5xl font-bold text-gray-900 mb-4">
-              Cosmic Playlist Generator
+              🌟 Generate Your Cosmic Playlist 🌟
             </h1>
-            <div className="transition-all duration-1000 ease-in-out">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                <strong>{currentText.title}</strong>
-              </h2>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                {currentText.subtitle}
-              </p>
-            </div>
+            <p className="text-2xl text-gray-700 mb-6">
+              AI-curated music to match your weekly planetary transits
+            </p>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+              Get your personalized 7-song weekly playlist based on your birth chart and current planetary movements. 
+              Free to try - just enter your birth details below!
+            </p>
           </div>
+
+          {/* Birth Data Form */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-center">Enter Your Birth Information</CardTitle>
+              <CardDescription className="text-center">
+                We need your birth details to calculate your cosmic playlist
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate">Birth Date</Label>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      data-testid="input-birth-date"
+                      {...form.register("birthDate")}
+                    />
+                    {form.formState.errors.birthDate && (
+                      <p className="text-sm text-red-500">{form.formState.errors.birthDate.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birthTime">Birth Time</Label>
+                    <Input
+                      id="birthTime"
+                      type="time"
+                      data-testid="input-birth-time"
+                      {...form.register("birthTime")}
+                    />
+                    {form.formState.errors.birthTime && (
+                      <p className="text-sm text-red-500">{form.formState.errors.birthTime.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birthLocation">Birth Location</Label>
+                    <Input
+                      id="birthLocation"
+                      type="text"
+                      placeholder="City, Country"
+                      data-testid="input-birth-location"
+                      {...form.register("birthLocation")}
+                    />
+                    {form.formState.errors.birthLocation && (
+                      <p className="text-sm text-red-500">{form.formState.errors.birthLocation.message}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  {!canGenerate ? (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h3 className="font-semibold text-amber-800 mb-2">Weekly Limit Reached</h3>
+                        <p className="text-amber-700 text-sm">
+                          You generated your free playlist on {lastGeneratedDate}. 
+                          Come back next week for a new one, or upgrade to Premium for unlimited access!
+                        </p>
+                      </div>
+                      <Link href="/upgrade">
+                        <Button 
+                          size="lg" 
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full md:w-auto px-8"
+                          data-testid="button-upgrade-from-limit"
+                        >
+                          <Crown className="w-5 h-5 mr-2" />
+                          Upgrade for Unlimited Playlists
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <Button 
+                      type="submit" 
+                      size="lg" 
+                      disabled={isGenerating}
+                      data-testid="button-generate-playlist"
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 w-full md:w-auto px-12"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Consulting the Stars...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Generate My Cosmic Playlist
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Features */}
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="p-6 bg-white rounded-lg shadow-sm transition-all duration-1000 ease-in-out">
-              <Sparkles className="h-8 w-8 text-blue-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                <strong>{currentFeatures[0].title}</strong>
-              </h3>
-              <p className="text-gray-600">
-                {currentFeatures[0].content}
-              </p>
-            </div>
-            <div className="p-6 bg-white rounded-lg shadow-sm transition-all duration-1000 ease-in-out">
-              <Star className="h-8 w-8 text-purple-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                <strong>{currentFeatures[1].title}</strong>
-              </h3>
-              <p className="text-gray-600">
-                {currentFeatures[1].content}
-              </p>
-            </div>
-            <div className="p-6 bg-white rounded-lg shadow-sm transition-all duration-1000 ease-in-out">
-              <Music className="h-8 w-8 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                <strong>{currentFeatures[2].title}</strong>
-              </h3>
-              <p className="text-gray-600">
-                {currentFeatures[2].content}
-              </p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Sparkles className="h-8 w-8 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">AI-Powered Curation</h3>
+                <p className="text-gray-600">
+                  Your celestial blueprint guides our AI in creating a personalized playlist that resonates with your cosmic energy.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Star className="h-8 w-8 text-purple-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Weekly Transits</h3>
+                <p className="text-gray-600">
+                  Each song is selected based on current planetary movements and how they interact with your birth chart.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Music className="h-8 w-8 text-green-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Spotify Export</h3>
+                <p className="text-gray-600">
+                  View your playlist and export it directly to Spotify with detailed astrological explanations.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* CTA */}
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome, Celestial Traveler
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Sign in to save and share your personalized playlists, detailed birth chart readings, and cosmic horoscopes. 
-              Your astrological journey awaits with AI-curated music that matches your celestial energy.
-            </p>
-            <div className="space-y-4">
-              <Link href="/login">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 w-full"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Sign In to Get Started
+          {/* Premium Teaser */}
+          <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+            <CardContent className="p-6 text-center">
+              <Crown className="h-8 w-8 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-amber-800">Want More Cosmic Experiences?</h3>
+              <p className="text-amber-700 mb-4">
+                Unlock unlimited playlists, detailed birth chart readings, AI chat guidance, mood tracking, and more with our premium service.
+              </p>
+              <Link href="/upgrade">
+                <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100" data-testid="button-learn-premium">
+                  Learn About Premium
                 </Button>
               </Link>
-              <p className="text-sm text-gray-500">
-                New to Cosmic Playlist?{" "}
-                <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
-                  Create an account
-                </Link>
-              </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
