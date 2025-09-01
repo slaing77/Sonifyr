@@ -259,7 +259,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
     {
       "name": "Playlist name reflecting astrological theme",
       "description": "Brief description of the cosmic influences",
-      "astrologicalSummary": "EXTREMELY DETAILED 3-4 paragraph analysis that warmly explains current major transits (include specific degrees and signs, but explain what they mean), how these interact with their birth chart in relatable terms, weekly energy themes, timing of key aspects with practical context, areas of focus, challenges and opportunities, spiritual guidance, and specific recommendations for navigating this cosmic weather. Use technical astrological terms but always explain them in accessible language - like teaching a curious friend about the cosmos.",
+      "astrologicalSummary": "CONCISE yet profound 2-3 paragraph weekly overview focusing on the STRONGEST cosmic influences. Lead with the most powerful transit or aspect affecting them this week, explain what it means in accessible terms, and how it shapes their overall energy. Include practical guidance for working with these influences, key timing to watch for, and the deeper spiritual themes emerging. Keep it focused, warm, and actionable - like a trusted cosmic advisor highlighting what matters most this week.",
       "weekStart": "${formatDate(weekStart)}",
       "weekEnd": "${formatDate(weekEnd)}",
       "songs": [
