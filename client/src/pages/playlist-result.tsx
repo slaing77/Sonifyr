@@ -3,12 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Music, ExternalLink, Crown, Share2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { SpotifyAuthDialog } from "@/components/spotify-auth-dialog";
+import { useToast } from "@/hooks/use-toast";
 import type { PlaylistData, Song } from "@shared/schema";
 
 export default function PlaylistResult() {
   const [, setLocation] = useLocation();
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showSpotifyDialog, setShowSpotifyDialog] = useState(false);
+  const [spotifyAuth, setSpotifyAuth] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const storedData = localStorage.getItem('guestPlaylist');
@@ -20,13 +25,66 @@ export default function PlaylistResult() {
     }
   }, [setLocation]);
 
-  const handleSpotifyExport = () => {
+  const handleSpotifyExport = async () => {
+    if (!playlistData) return;
+    
+    // If user already has Spotify auth, export directly
+    if (spotifyAuth) {
+      await exportToSpotify();
+      return;
+    }
+    
+    // Otherwise, show Spotify auth dialog
+    setShowSpotifyDialog(true);
+  };
+
+  const handleSpotifyAuthSuccess = (authData: any) => {
+    setSpotifyAuth(authData);
+    // Automatically export after successful auth
+    exportToSpotify(authData);
+  };
+
+  const exportToSpotify = async (authData = spotifyAuth) => {
+    if (!playlistData || !authData) return;
+    
     setIsExporting(true);
-    // For now, just show a message that they need to sign up for export
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/guest/export-spotify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playlistData,
+          spotifyAuth: authData
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "🎵 Playlist Exported!",
+          description: `"${playlistData.name}" has been added to your Spotify account.`,
+        });
+        
+        // Open Spotify playlist in new tab
+        if (result.spotifyUrl) {
+          window.open(result.spotifyUrl, '_blank');
+        }
+      } else {
+        throw new Error(result.message || 'Export failed');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export playlist. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsExporting(false);
-      alert("To export playlists to Spotify, please sign up for a free account!");
-    }, 1000);
+    }
   };
 
   const handleGenerateAnother = () => {
@@ -212,6 +270,13 @@ export default function PlaylistResult() {
           </Card>
         </div>
       </div>
+      
+      {/* Spotify Auth Dialog */}
+      <SpotifyAuthDialog
+        open={showSpotifyDialog}
+        onOpenChange={setShowSpotifyDialog}
+        onAuthSuccess={handleSpotifyAuthSuccess}
+      />
     </div>
   );
 }
