@@ -1,0 +1,64 @@
+Perfect! Here's the extracted rotating text component for your CosmicPlaylistGenerator-Free app:
+
+RotatingHeroText Component
+import { useState, useEffect } from "react";
+export default function RotatingHeroText() {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  // Rotating text variations for CosmicPlaylistGenerator-Free
+  const textVariations = [
+    {
+      title: "AI-curated music to match your weekly planetary transits",
+      subtitle: "Get your personalized 7-song weekly playlist based on your birth chart and current planetary movements. Free to try - just enter your birth details below!"
+    },
+    {
+      title: "Your celestial soundtrack awaits",
+      subtitle: "Let the cosmos guide your music. Our AI astrologer creates playlists that resonate with your astrological energy and this week's planetary influences."
+    },
+    {
+      title: "Transform planetary energy into music",
+      subtitle: "Experience the harmony between astrology and sound. Each song is selected based on your birth chart and current cosmic weather patterns."
+    },
+    {
+      title: "Weekly cosmic playlists, personalized for you",
+      subtitle: "Discover how Mercury, Venus, Mars and other planets influence your musical taste. Get fresh weekly recommendations that align with your astrological profile."
+    }
+  ];
+  // Rotate text every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTextIndex((prev) => (prev + 1) % textVariations.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [textVariations.length]);
+  const currentText = textVariations[currentTextIndex];
+  return (
+    <div className="transition-all duration-1000 ease-in-out">
+      <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-4">
+        {currentText.title}
+      </h2>
+      <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+        {currentText.subtitle}
+      </p>
+    </div>
+  );
+}
+How to Use It:
+Save this as a component in your free app (e.g., RotatingHeroText.jsx)
+
+Import and use it in your landing page:
+
+import RotatingHeroText from './RotatingHeroText';
+// In your landing page component:
+<div className="text-center">
+  <h1 className="text-4xl font-bold mb-6">🌟 Generate Your Cosmic Playlist 🌟</h1>
+  <RotatingHeroText />
+  {/* Your birth info form goes here */}
+</div>
+Key Features:
+✅ 8-second rotation as requested
+✅ 4 different variations focused on free version messaging
+✅ Smooth transitions with CSS
+✅ Mobile responsive sizing
+✅ Free-focused copy that drives conversion to premium
+✅ Call-to-action included in subtitle text
+The component includes your exact text plus 3 additional variations that emphasize the free value proposition while building interest in the full cosmic experience. Each variation maintains the "free to try" messaging while showcasing different angles of the astrological music curation!

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import RotatingHeroText from "@/components/rotating-hero-text";
 
 const birthDataSchema = z.object({
   birthInfo: z.string().min(1, "Birth information is required").refine(
@@ -135,13 +136,7 @@ export default function Landing() {
             <h1 className="text-5xl font-bold text-gray-900 mb-4">
               🌟 Generate Your Cosmic Playlist 🌟
             </h1>
-            <p className="text-2xl text-gray-700 mb-6">
-              AI-curated music to match your weekly planetary transits
-            </p>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-              Get your personalized 7-song weekly playlist based on your birth chart and current planetary movements. 
-              Free to try - just enter your birth details below!
-            </p>
+            <RotatingHeroText />
           </div>
 
           {/* Birth Data Form */}
