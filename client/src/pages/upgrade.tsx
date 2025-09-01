@@ -61,6 +61,10 @@ export default function UpgradePage() {
                     <Check className="h-4 w-4 text-green-500" />
                     <span>Manual song copying</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>Export to Spotify (with your existing account)</span>
+                  </div>
                 </div>
                 <div className="mt-6">
                   <div className="text-2xl font-bold text-gray-900">Free</div>
