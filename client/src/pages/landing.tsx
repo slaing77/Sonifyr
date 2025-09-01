@@ -31,6 +31,7 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  // Rate limiting disabled for testing
   const [canGenerate, setCanGenerate] = useState(true);
   const [lastGeneratedDate, setLastGeneratedDate] = useState<string | null>(null);
 
@@ -41,26 +42,27 @@ export default function Landing() {
     },
   });
 
-  // Check weekly limit on component mount
-  useEffect(() => {
-    const lastGenerated = localStorage.getItem('lastPlaylistGenerated');
-    if (lastGenerated) {
-      const lastDate = new Date(lastGenerated);
-      const now = new Date();
-      const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
-      
-      if (daysDiff < 7) {
-        setCanGenerate(false);
-        setLastGeneratedDate(lastDate.toLocaleDateString());
-      }
-    }
-  }, []);
+  // Rate limiting disabled for testing
+  // useEffect(() => {
+  //   const lastGenerated = localStorage.getItem('lastPlaylistGenerated');
+  //   if (lastGenerated) {
+  //     const lastDate = new Date(lastGenerated);
+  //     const now = new Date();
+  //     const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+  //     
+  //     if (daysDiff < 7) {
+  //       setCanGenerate(false);
+  //       setLastGeneratedDate(lastDate.toLocaleDateString());
+  //     }
+  //   }
+  // }, []);
 
   const generatePlaylist = useMutation({
     mutationFn: async (data: BirthData) => {
-      if (!canGenerate) {
-        throw new Error('You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!');
-      }
+      // Rate limiting disabled for testing
+      // if (!canGenerate) {
+      //   throw new Error('You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!');
+      // }
       
       setIsGenerating(true);
       // Parse the birth info string
@@ -100,9 +102,9 @@ export default function Landing() {
       setIsGenerating(false);
       // Store the generated playlist data in localStorage for the results page
       localStorage.setItem('guestPlaylist', JSON.stringify(data));
-      // Track when the playlist was generated for weekly limit
-      localStorage.setItem('lastPlaylistGenerated', new Date().toISOString());
-      setCanGenerate(false);
+      // Rate limiting disabled for testing
+      // localStorage.setItem('lastPlaylistGenerated', new Date().toISOString());
+      // setCanGenerate(false);
       setLocation('/playlist-result');
     },
     onError: (error: any) => {
