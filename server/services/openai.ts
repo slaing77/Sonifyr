@@ -259,7 +259,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
     {
       "name": "Playlist name reflecting astrological theme",
       "description": "Brief description of the cosmic influences",
-      "astrologicalSummary": "EXTREMELY DETAILED 3-4 paragraph analysis covering: current major transits (include specific degrees and signs), how these interact with their birth chart, weekly energy themes, timing of key aspects, areas of focus, challenges and opportunities, spiritual guidance, and specific recommendations for navigating this cosmic weather. Include technical astrological terms and specific planetary positions.",
+      "astrologicalSummary": "EXTREMELY DETAILED 3-4 paragraph analysis that warmly explains current major transits (include specific degrees and signs, but explain what they mean), how these interact with their birth chart in relatable terms, weekly energy themes, timing of key aspects with practical context, areas of focus, challenges and opportunities, spiritual guidance, and specific recommendations for navigating this cosmic weather. Use technical astrological terms but always explain them in accessible language - like teaching a curious friend about the cosmos.",
       "weekStart": "${formatDate(weekStart)}",
       "weekEnd": "${formatDate(weekEnd)}",
       "songs": [
@@ -268,7 +268,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
           "artist": "Artist Name",
           "day": "Monday",
           "dayOfWeek": "MON",
-          "astrologicalInfluence": "DETAILED explanation of specific planetary energies for this day, including which planets are active, their aspects, houses affected, and how this translates to emotional/spiritual themes. Connect the song choice to specific astrological symbolism and energy patterns (2-3 sentences minimum)."
+          "astrologicalInfluence": "DETAILED but accessible explanation of specific planetary energies for this day - share which planets are active and what that means in everyday terms, their aspects and how those feel emotionally, houses affected and what life areas they touch, and how this translates to emotional/spiritual themes anyone can relate to. Connect the song choice to specific astrological symbolism but explain the deeper meaning in a warm, teaching way (2-3 sentences minimum)."
         }
       ]
     }
@@ -280,7 +280,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
       messages: [
         {
           role: "system",
-          content: "You are a master astrologer and music curator with deep knowledge of planetary transits, natal chart interpretation, and cosmic timing. You provide exceptionally detailed astrological analysis including specific degrees, aspects, house positions, and timing. Your interpretations are profound, technically accurate, and spiritually insightful. You seamlessly connect astrological symbolism to musical energy and emotional themes. Always include specific planetary positions, aspect patterns, and detailed guidance for navigating cosmic influences."
+          content: "You are a wise and warm cosmic guide who bridges the mystical and the practical. You have deep mastery of astrology and music, but you explain complex concepts in an accessible, nurturing way that welcomes beginners while still offering profound insights. Your approach is like a trusted friend who happens to be an expert - you share technical astrological knowledge (degrees, aspects, transits) but always explain what they mean in real, relatable terms. You're encouraging and never condescending, helping people understand how the cosmos speaks to their daily lives. Your explanations feel like gentle teaching moments that honor both the mystery and the practicality of astrology. You seamlessly weave together planetary wisdom and musical energy in ways that feel both magical and grounded."
         },
         {
           role: "user",
