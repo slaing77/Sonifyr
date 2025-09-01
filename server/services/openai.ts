@@ -246,12 +246,20 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
 
     Base the selection on current planetary transits and their astrological significance for the week starting ${formatDate(weekStart)} through ${formatDate(weekEnd)}.${musicContext}
 
+    Provide extremely detailed astrological analysis including:
+    - Current major planetary transits and their specific degrees
+    - How these transits interact with their natal chart placements
+    - Weekly themes and energy patterns
+    - Specific planetary aspects and their timing
+    - Recommended actions and areas of focus
+    - Emotional and spiritual guidance
+
     Respond with a JSON object in this exact format:
 
     {
       "name": "Playlist name reflecting astrological theme",
       "description": "Brief description of the cosmic influences",
-      "astrologicalSummary": "Summary of key transits affecting this person this week",
+      "astrologicalSummary": "EXTREMELY DETAILED 3-4 paragraph analysis covering: current major transits (include specific degrees and signs), how these interact with their birth chart, weekly energy themes, timing of key aspects, areas of focus, challenges and opportunities, spiritual guidance, and specific recommendations for navigating this cosmic weather. Include technical astrological terms and specific planetary positions.",
       "weekStart": "${formatDate(weekStart)}",
       "weekEnd": "${formatDate(weekEnd)}",
       "songs": [
@@ -260,19 +268,19 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
           "artist": "Artist Name",
           "day": "Monday",
           "dayOfWeek": "MON",
-          "astrologicalInfluence": "Brief description of planetary influence for this day"
+          "astrologicalInfluence": "DETAILED explanation of specific planetary energies for this day, including which planets are active, their aspects, houses affected, and how this translates to emotional/spiritual themes. Connect the song choice to specific astrological symbolism and energy patterns (2-3 sentences minimum)."
         }
       ]
     }
 
-    Include 7 songs, one for each day. ${spotifyRecommendations.length > 0 ? 'ONLY choose songs from the provided Spotify recommendations list.' : 'Choose real, popular songs that match the emotional/energetic qualities of each day\'s planetary influences and align with their music preferences.'}`;
+    Include 7 songs, one for each day. Each song's astrological influence should be deeply detailed with specific planetary connections, aspects, and symbolic meanings. ${spotifyRecommendations.length > 0 ? 'ONLY choose songs from the provided Spotify recommendations list.' : 'Choose real, popular songs that match the emotional/energetic qualities of each day\'s planetary influences and align with their music preferences.'}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are an expert astrologer and music curator. Create authentic playlists based on real astrological transits and popular music."
+          content: "You are a master astrologer and music curator with deep knowledge of planetary transits, natal chart interpretation, and cosmic timing. You provide exceptionally detailed astrological analysis including specific degrees, aspects, house positions, and timing. Your interpretations are profound, technically accurate, and spiritually insightful. You seamlessly connect astrological symbolism to musical energy and emotional themes. Always include specific planetary positions, aspect patterns, and detailed guidance for navigating cosmic influences."
         },
         {
           role: "user",
