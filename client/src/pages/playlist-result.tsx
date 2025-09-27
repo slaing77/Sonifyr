@@ -18,12 +18,54 @@ export default function PlaylistResult() {
   useEffect(() => {
     const storedData = localStorage.getItem('guestPlaylist');
     if (storedData) {
-      setPlaylistData(JSON.parse(storedData));
+      const playlist = JSON.parse(storedData);
+      setPlaylistData(playlist);
+      
+      // Add social media meta tags for beautiful sharing
+      updateMetaTags(playlist);
     } else {
       // Redirect back to landing if no playlist data
       setLocation('/');
     }
   }, [setLocation]);
+
+  const updateMetaTags = (playlist: PlaylistData) => {
+    // Generate unique playlist name and description
+    const playlistName = `${playlist.name || 'Cosmic Playlist'}: Your Horoscope. Your Soundtrack`;
+    const description = `Discover your personalized cosmic playlist curated by AI and astrology. ${playlist.songs?.length || 7} songs chosen based on planetary influences and astrological insights.`;
+    const imageUrl = window.location.origin + '/cosmic-collage.jpg';
+    const playlistUrl = window.location.href;
+
+    // Update page title
+    document.title = playlistName + ' - Sonifyr';
+
+    // Remove existing meta tags
+    const existingMetas = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"], meta[name="description"]');
+    existingMetas.forEach(meta => meta.remove());
+
+    // Add new meta tags
+    const metaTags = [
+      { property: 'og:title', content: playlistName },
+      { property: 'og:description', content: description },
+      { property: 'og:image', content: imageUrl },
+      { property: 'og:url', content: playlistUrl },
+      { property: 'og:type', content: 'music.playlist' },
+      { property: 'og:site_name', content: 'Sonifyr' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: playlistName },
+      { name: 'twitter:description', content: description },
+      { name: 'twitter:image', content: imageUrl },
+      { name: 'description', content: description }
+    ];
+
+    metaTags.forEach(({ property, name, content }) => {
+      const meta = document.createElement('meta');
+      if (property) meta.setAttribute('property', property);
+      if (name) meta.setAttribute('name', name);
+      meta.setAttribute('content', content);
+      document.head.appendChild(meta);
+    });
+  };
 
   const handleSpotifyExport = async () => {
     if (!playlistData) return;

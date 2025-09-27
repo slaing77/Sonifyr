@@ -22,7 +22,7 @@ import { eq, and } from "drizzle-orm";
 import { setupAuth, requireAuth, requireCompleteProfile } from "./auth";
 import { socialService } from "./services/social";
 import { pdfService } from "./services/pdf";
-import { generatePersonalizedDescription } from "./utils/taglines";
+import { generatePersonalizedDescription, generateUniquePlaylistName } from "./utils/taglines";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1696,15 +1696,31 @@ ${daily.horoscope}
       let spotifyPlaylistId = user.spotifyPlaylistId;
       let spotifyPlaylist;
       
-      const name = playlistName || aiPlaylist.name || `Cosmic Playlist - ${aiPlaylist.weekStart}`;
+      // Get user's astrological signs from birth data
+      let userSunSign, userMoonSign;
+      if (user.birthDate && user.birthTime && user.birthLocation) {
+        try {
+          const birthChart = await astrologyService.calculateBigThreeAccurate({
+            date: user.birthDate,
+            time: user.birthTime,
+            location: user.birthLocation
+          });
+          userSunSign = (birthChart as any).bigThree?.sunSign;
+          userMoonSign = (birthChart as any).bigThree?.moonSign;
+        } catch (error) {
+          console.error('Error calculating user signs:', error);
+        }
+      }
+
+      const name = playlistName || generateUniquePlaylistName(userSunSign, userMoonSign);
       
       // Get planetary summary from playlist's astrological insights
       const planetarySummary = (aiPlaylist as any).astrologicalSummary || 
         `embraces this week's celestial energies from ${aiPlaylist.weekStart} to ${aiPlaylist.weekEnd}, blending cosmic influences with melodies that resonate with your personal astrological essence`;
       
       const description = generatePersonalizedDescription(
-        user.sunSign,
-        user.moonSign,
+        userSunSign,
+        userMoonSign,
         planetarySummary,
         aiPlaylist.description || `Cosmic playlist for ${aiPlaylist.weekStart} to ${aiPlaylist.weekEnd}`
       );
@@ -2158,13 +2174,29 @@ ${daily.horoscope}
         let spotifyPlaylistId = user.spotifyPlaylistId;
         let spotifyPlaylist;
         
+        // Get user's astrological signs from birth data
+        let userSunSign, userMoonSign;
+        if (user.birthDate && user.birthTime && user.birthLocation) {
+          try {
+            const birthChart = await astrologyService.calculateBigThreeAccurate({
+              date: user.birthDate,
+              time: user.birthTime,
+              location: user.birthLocation
+            });
+            userSunSign = (birthChart as any).bigThree?.sunSign;
+            userMoonSign = (birthChart as any).bigThree?.moonSign;
+          } catch (error) {
+            console.error('Error calculating user signs:', error);
+          }
+        }
+
         // Get planetary summary from playlist's astrological insights  
         const planetarySummary = (playlist as any).astrologicalSummary || 
           `embraces this week's celestial energies from ${playlist.weekStart} to ${playlist.weekEnd}, blending cosmic influences with melodies that resonate with your personal astrological essence`;
         
         const description = generatePersonalizedDescription(
-          user.sunSign,
-          user.moonSign,
+          userSunSign,
+          userMoonSign,
           planetarySummary,
           playlist.description || `Cosmic playlist for ${playlist.weekStart} to ${playlist.weekEnd}`
         );
@@ -2794,7 +2826,7 @@ ${daily.horoscope}
       const backfillPromises = missingTransitDates.map(date =>
         astrologyService.generateAndStoreDailyTransit(
           userId,
-          { date: user.birthDate, time: user.birthTime, location: user.birthLocation },
+          { date: user.birthDate!, time: user.birthTime!, location: user.birthLocation! },
           date
         )
       );
