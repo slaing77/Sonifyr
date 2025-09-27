@@ -24,10 +24,10 @@ export default function UpgradePage() {
             </div>
             
             <h1 className="text-5xl font-bold text-gray-900 mb-4">
-              ✨ Unlock Your Full Cosmic Experience ✨
+              ✨ Unlock Your Full Sonifyr Experience ✨
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              Transform your free cosmic playlist experience into a complete astrological journey with unlimited AI guidance, 
+              Transform your free planetary soundtrack experience into a complete astrological journey with unlimited AI guidance, 
               detailed birth chart analysis, and personalized cosmic insights.
             </p>
           </div>
@@ -41,7 +41,7 @@ export default function UpgradePage() {
                   <Music className="h-5 w-5 text-blue-500" />
                   Free Version
                 </CardTitle>
-                <CardDescription>Great for trying out cosmic playlists</CardDescription>
+                <CardDescription>Great for trying out planetary soundtracks</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -171,7 +171,7 @@ export default function UpgradePage() {
                   <div className="mb-4">⭐⭐⭐⭐⭐</div>
                   <p className="text-gray-700 italic mb-4">
                     "The AI chat feature is incredible! It's like having a personal astrologer available 24/7. 
-                    The playlist accuracy is spot-on with my current life situations."
+                    Sonifyr's playlist accuracy is spot-on with my current life situations."
                   </p>
                   <p className="font-semibold">— Sarah M.</p>
                 </div>
@@ -186,8 +186,8 @@ export default function UpgradePage() {
                 <div className="text-center">
                   <div className="mb-4">⭐⭐⭐⭐⭐</div>
                   <p className="text-gray-700 italic mb-4">
-                    "Having unlimited playlists is a game-changer. I create new ones for different moods 
-                    and occasions. The Spotify export makes it so convenient!"
+                    "Having unlimited playlists is a game-changer. I create new soundtracks for different moods 
+                    and occasions. Sonifyr's Spotify export makes it so convenient!"
                   </p>
                   <p className="font-semibold">— Maya L.</p>
                 </div>
@@ -247,8 +247,8 @@ export default function UpgradePage() {
                 <CardContent className="p-6 text-left">
                   <h3 className="font-semibold mb-2">Do I need a Spotify account?</h3>
                   <p className="text-gray-600">
-                    No, you can view and manually copy all playlists. Spotify export is just a 
-                    convenient bonus feature for Premium users.
+                    No, you can view and manually copy all playlists. Spotify export is available for 
+                    free users too - just connect your existing Spotify account.
                   </p>
                 </CardContent>
               </Card>
