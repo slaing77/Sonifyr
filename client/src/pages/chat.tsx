@@ -235,7 +235,7 @@ export default function ChatPage() {
       case 'Detailed Birth Chart Reading':
         detailedChartMutation.mutate();
         break;
-      case 'Cosmic Playlist Generator':
+      case 'Sonifyr':
         generatePlaylistMutation.mutate();
         break;
       case 'Daily Mood Tracker':
@@ -274,8 +274,8 @@ export default function ChatPage() {
                 <Music className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Cosmic Playlist Generator</h1>
-                <p className="text-xs text-muted-foreground">Weekly planetary transit music</p>
+                <h1 className="text-lg font-semibold text-foreground">Sonifyr</h1>
+                <p className="text-xs text-muted-foreground">Turn Planetary data into sound</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
