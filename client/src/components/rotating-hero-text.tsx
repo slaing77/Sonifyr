@@ -3,44 +3,39 @@ import { useState, useEffect } from "react";
 export default function RotatingHeroText() {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   
-  // Rotating text variations for CosmicPlaylistGenerator-Free
-  const textVariations = [
-    {
-      title: "AI-curated music to match your weekly planetary transits",
-      subtitle: "Get your personalized 7-song weekly playlist based on your birth chart and current planetary movements. Free to try - just enter your birth details below!"
-    },
-    {
-      title: "Your celestial soundtrack awaits",
-      subtitle: "Let the cosmos guide your music. Our AI astrologer creates playlists that resonate with your astrological energy and this week's planetary influences."
-    },
-    {
-      title: "Transform planetary energy into music",
-      subtitle: "Experience the harmony between astrology and sound. Each song is selected based on your birth chart and current cosmic weather patterns."
-    },
-    {
-      title: "Weekly cosmic playlists, personalized for you",
-      subtitle: "Discover how Mercury, Venus, Mars and other planets influence your musical taste. Get fresh weekly recommendations that align with your astrological profile."
-    }
+  // Rotating taglines for Sonifyr
+  const taglineVariations = [
+    "Sonify Your Stars. Stream Your Story.",
+    "Your Horoscope. Your Soundtrack.",
+    "Astrology That Speaks in Songs.",
+    "Let the Planets Pick the Playlist.",
+    "Daily Vibes, Written in the Stars.",
+    "A New Way to Hear the Universe.",
+    "From Transit to Track — Feel the Cosmic Flow.",
+    "Music That Moves with Your Moon.",
+    "Your Chart. Your Sound. Your Week in Vibes.",
+    "Zodiac to Spotify — Instantly."
   ];
 
-  // Rotate text every 8 seconds
+  // Rotate taglines every 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTextIndex((prev) => (prev + 1) % textVariations.length);
+      setCurrentTextIndex((prev) => (prev + 1) % taglineVariations.length);
     }, 8000);
     
     return () => clearInterval(interval);
-  }, [textVariations.length]);
+  }, [taglineVariations.length]);
 
-  const currentText = textVariations[currentTextIndex];
+  const currentTagline = taglineVariations[currentTextIndex];
 
   return (
     <div className="transition-all duration-1000 ease-in-out">
-      <p className="text-2xl text-gray-700 mb-6">
-        {currentText.title}
+      <p className="text-3xl text-gray-700 mb-6 font-medium">
+        {currentTagline}
       </p>
       <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-        {currentText.subtitle}
+        Each playlist captures your astrological vibe through moods, rhythms, and harmonies — giving you music that feels like your week ahead.
+        It's not just a playlist - It's your horoscope, playing through your headphones.
       </p>
     </div>
   );

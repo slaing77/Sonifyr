@@ -134,8 +134,11 @@ export default function Landing() {
               </div>
             </div>
             <h1 className="text-5xl font-bold text-gray-900 mb-4">
-              🌟 Generate Your Cosmic Playlist 🌟
+              🎵 Sonifyr 🎵
             </h1>
+            <p className="text-xl text-blue-600 font-semibold mb-4">
+              Turn Planetary data into sound.
+            </p>
             <RotatingHeroText />
           </div>
 
