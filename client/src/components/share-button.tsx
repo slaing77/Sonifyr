@@ -122,7 +122,41 @@ export default function ShareButton({ type, sessionId, variant = 'outline', size
       window.open(url, '_blank', 'width=600,height=400');
     } else if (platform === 'facebook') {
       const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareData.socialText.facebook)}`;
-      window.open(url, '_blank', 'width=600,height=400');
+      
+      // Try opening popup, with fallback for popup blockers
+      try {
+        const popup = window.open(url, '_blank', 'width=600,height=400,scrollbars=yes,resizable=yes');
+        
+        // Check if popup was blocked after a brief moment
+        setTimeout(() => {
+          if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+            // Popup was blocked, fall back to copying link
+            handleFacebookPopupBlocked(url);
+          }
+        }, 100);
+      } catch (error) {
+        // Error opening popup, fall back to copying link
+        handleFacebookPopupBlocked(url);
+      }
+    }
+  };
+
+  const handleFacebookPopupBlocked = async (socialUrl: string) => {
+    try {
+      // Copy the Facebook sharing URL to clipboard as fallback
+      await navigator.clipboard.writeText(socialUrl);
+      toast({
+        title: "📋 Facebook Link Copied!",
+        description: "Popup was blocked. Facebook sharing link copied to clipboard - paste it in a new tab to share.",
+        duration: 5000,
+      });
+    } catch (clipboardError) {
+      // If clipboard also fails, show instructions
+      toast({
+        title: "Share on Facebook",
+        description: "Copy this link to share: " + socialUrl,
+        duration: 8000,
+      });
     }
   };
 
