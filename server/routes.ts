@@ -2891,7 +2891,7 @@ ${daily.horoscope}
       const description = req.query.description as string || 'Discover your personalized cosmic playlist curated by AI and astrology. Songs chosen based on planetary influences and astrological insights.';
       const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
       const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-      const imageUrl = `${baseUrl}/cosmic-playlist-share.svg`;
+      const imageUrl = `${baseUrl}/generated_images/Sonifyr_star_logo_design_85955193.png`;
       const playlistUrl = `${baseUrl}/playlist-result`;
       
       // Generate dynamic meta tags

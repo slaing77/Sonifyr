@@ -346,7 +346,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
         console.log('🌟 Starting planetary frequency analysis...');
         
         // Get user's astrological chart data
-        let chartData = {};
+        let chartData: any = {};
         if (birthInfo) {
           chartData = await this.astrologyService.calculateBigThreeAccurate({
             date: birthInfo.date,
@@ -426,6 +426,21 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
       } catch (error) {
         console.error('Error in planetary frequency analysis:', error);
         // Continue without planetary analysis
+      }
+    }
+    
+    // ADD ASTROLOGICAL SIGNS TO PLAYLIST DATA FOR SPOTIFY PERSONALIZATION
+    if (playlistData && birthInfo) {
+      try {
+        // Add sun sign and moon sign for Spotify description personalization
+        if (chartData.bigThree) {
+          playlistData.sunSign = chartData.bigThree.sunSign;
+          playlistData.moonSign = chartData.bigThree.moonSign;
+          playlistData.risingSign = chartData.bigThree.risingSign;
+          console.log(`📋 Added astrological signs to playlist data: ${playlistData.sunSign} Sun, ${playlistData.moonSign} Moon`);
+        }
+      } catch (error) {
+        console.warn('Warning: Failed to add astrological signs to playlist data:', error);
       }
     }
     
