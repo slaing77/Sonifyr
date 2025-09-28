@@ -12,6 +12,7 @@ import {
   dailyTransits,
   contentFeedback,
   weeklyReflections,
+  guestRateLimits,
   type ChatSession, 
   type ChatMessage, 
   type Playlist, 
@@ -23,6 +24,8 @@ import {
   type DailyTransit,
   type ContentFeedback,
   type WeeklyReflection,
+  type GuestRateLimit,
+  type InsertGuestRateLimit,
   type InsertSongUsage,
   type InsertChatSession, 
   type InsertChatMessage, 
@@ -53,6 +56,9 @@ export interface IStorage {
   setPasswordResetToken(email: string, token: string, expiry: Date): Promise<void>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: string): Promise<void>;
+  // Guest rate limiting operations
+  canGuestGenerate(email: string): Promise<boolean>;
+  touchGuestPlaylistGenerated(email: string): Promise<void>;
   updatePassword(userId: string, hashedPassword: string): Promise<void>;
   updateUserSpotify(userId: string, spotifyData: Partial<{
     spotifyId: string;
@@ -754,7 +760,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(dailyTransits)
       .where(eq(dailyTransits.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async createContentFeedback(feedbackData: InsertContentFeedback): Promise<ContentFeedback> {
@@ -813,6 +819,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(weeklyReflections.id, id))
       .returning();
     return reflection;
+  }
+
+  // Guest rate limiting operations
+  async canGuestGenerate(email: string): Promise<boolean> {
+    try {
+      // Try to execute raw SQL since the table might not exist yet
+      const result = await db.execute(sql`
+        SELECT last_playlist_generated 
+        FROM guest_rate_limits 
+        WHERE email = ${email}
+      `);
+      
+      if (result.rows.length === 0) {
+        return true; // Email not found, can generate
+      }
+      
+      const lastGenerated = result.rows[0]?.last_playlist_generated;
+      if (!lastGenerated) {
+        return true; // No timestamp, can generate
+      }
+      
+      const lastDate = new Date(lastGenerated as string);
+      const now = new Date();
+      const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+      
+      return daysDiff >= 7; // Can generate if 7+ days have passed
+    } catch (error) {
+      console.log('Guest rate limit check failed, allowing generation:', error);
+      return true; // If table doesn't exist or query fails, allow generation
+    }
+  }
+
+  async touchGuestPlaylistGenerated(email: string): Promise<void> {
+    try {
+      // Try to upsert using raw SQL
+      await db.execute(sql`
+        INSERT INTO guest_rate_limits (email, last_playlist_generated, created_at, updated_at)
+        VALUES (${email}, NOW(), NOW(), NOW())
+        ON CONFLICT (email) 
+        DO UPDATE SET 
+          last_playlist_generated = NOW(),
+          updated_at = NOW()
+      `);
+    } catch (error) {
+      console.log('Failed to update guest rate limit, continuing:', error);
+      // If table doesn't exist or query fails, continue silently
+    }
   }
 
 }
@@ -1123,7 +1176,20 @@ export class MemStorage implements IStorage {
 
   // Mood & Feedback Tracking (MemStorage stubs - guests don't persist mood/feedback)
   async createDailyMood(mood: InsertDailyMood): Promise<DailyMood> { 
-    return { id: 1, userId: mood.userId, date: mood.date, mood: mood.mood, energy: mood.energy, emotions: mood.emotions || null, journalEntry: mood.journalEntry || null, createdAt: new Date(), updatedAt: new Date() };
+    return { 
+      id: 1, 
+      userId: mood.userId, 
+      date: mood.date, 
+      mood: mood.mood, 
+      energy: mood.energy, 
+      emotions: mood.emotions || null, 
+      journalEntry: mood.journalEntry || null, 
+      moonSign: null,
+      moonPhase: null,
+      moonIllumination: null,
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    };
   }
   async getDailyMood(userId: string, date: string): Promise<DailyMood | undefined> { return undefined; }
   async getUserDailyMoods(userId: string, startDate?: string, endDate?: string): Promise<DailyMood[]> { return []; }
@@ -1141,6 +1207,10 @@ export class MemStorage implements IStorage {
   async getWeeklyReflection(userId: string, weekStart: string): Promise<WeeklyReflection | undefined> { return undefined; }
   async getUserWeeklyReflections(userId: string): Promise<WeeklyReflection[]> { return []; }
   async updateWeeklyReflection(id: number, updates: Partial<InsertWeeklyReflection>): Promise<WeeklyReflection | undefined> { return undefined; }
+  
+  // Guest rate limiting operations (MemStorage stubs - guests don't persist rate limits)
+  async canGuestGenerate(email: string): Promise<boolean> { return true; }
+  async touchGuestPlaylistGenerated(email: string): Promise<void> {}
 }
 
 export const storage = new DatabaseStorage();

@@ -116,6 +116,15 @@ export const astrologicalCharts = pgTable("astrological_charts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Guest Rate Limits for email-based weekly playlist generation
+export const guestRateLimits = pgTable("guest_rate_limits", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull().unique(),
+  lastPlaylistGenerated: timestamp("last_playlist_generated"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Daily Transit Tracking
 export const dailyTransits = pgTable("daily_transits", {
   id: serial("id").primaryKey(),
@@ -314,6 +323,12 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   createdAt: true,
 });
 
+export const insertGuestRateLimitSchema = createInsertSchema(guestRateLimits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({
   id: true,
   createdAt: true,
@@ -389,6 +404,8 @@ export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
 export type ChatSession = typeof chatSessions.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+export type GuestRateLimit = typeof guestRateLimits.$inferSelect;
+export type InsertGuestRateLimit = z.infer<typeof insertGuestRateLimitSchema>;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type Playlist = typeof playlists.$inferSelect;
 export type InsertSocialInteraction = z.infer<typeof insertSocialInteractionSchema>;
