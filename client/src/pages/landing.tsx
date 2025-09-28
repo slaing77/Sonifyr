@@ -40,6 +40,9 @@ export default function Landing() {
   // Choice screen state
   const [showChoiceScreen, setShowChoiceScreen] = useState(false);
   const [parsedBirthData, setParsedBirthData] = useState<any>(null);
+  
+  // Email collection state for Quick path
+  const [showEmailCollection, setShowEmailCollection] = useState(false);
 
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
@@ -208,22 +211,13 @@ export default function Landing() {
                         </div>
                       </div>
                       <Button 
-                        onClick={() => generateQuickPlaylist.mutate(parsedBirthData)}
+                        onClick={() => setShowEmailCollection(true)}
                         disabled={isGenerating}
                         className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                         data-testid="button-quick-cosmic"
                       >
-                        {isGenerating ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Consulting the Stars...
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-4 h-4 mr-2" />
-                            Generate Quick Cosmic Playlist
-                          </>
-                        )}
+                        <Zap className="w-4 h-4 mr-2" />
+                        Choose Quick Cosmic Experience
                       </Button>
                       <p className="text-xs text-gray-500">Perfect for exploring how planetary frequencies work with music</p>
                     </CardContent>
@@ -292,8 +286,93 @@ export default function Landing() {
             </Card>
           )}
 
-          {/* Birth Data Form - Only show when not showing choice screen */}
-          {!showChoiceScreen && (
+          {/* Email Collection Screen - Only show after Quick Cosmic Experience selection */}
+          {showEmailCollection && parsedBirthData && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-center text-2xl">⚡ Quick Cosmic Experience</CardTitle>
+                <CardDescription className="text-center text-lg">
+                  How would you like to receive your cosmic playlist?
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Email Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="quick-email" className="text-lg font-semibold">📧 Your Email Address</Label>
+                    <Input
+                      id="quick-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      data-testid="input-quick-email"
+                      className="text-center text-lg py-3"
+                    />
+                    <p className="text-sm text-gray-500 text-center">
+                      We'll send your cosmic playlist here
+                    </p>
+                  </div>
+                  
+                  {/* Newsletter Options */}
+                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                    <Label className="text-base font-medium">Choose your cosmic journey:</Label>
+                    <RadioGroup
+                      defaultValue="playlist-only"
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                        <RadioGroupItem value="playlist-only" id="quick-playlist-only" data-testid="radio-quick-playlist-only" />
+                        <Label htmlFor="quick-playlist-only" className="flex-1 cursor-pointer">
+                          <div className="font-medium text-gray-700">🎵 Just send me this playlist</div>
+                          <div className="text-sm text-gray-600">One-time cosmic playlist delivery</div>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border border-purple-200 bg-purple-50">
+                        <RadioGroupItem value="newsletter" id="quick-newsletter" data-testid="radio-quick-newsletter" />
+                        <Label htmlFor="quick-newsletter" className="flex-1 cursor-pointer">
+                          <div className="font-medium text-purple-800">🌙 Sign me up for weekly cosmic playlists!</div>
+                          <div className="text-sm text-purple-600">Your Chart. Your Sound. Your Weekly Sonifyr</div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-4 pt-6">
+                    <Button 
+                      onClick={() => {/* TODO: Will implement in task 4 */}}
+                      disabled={isGenerating}
+                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 py-3"
+                      data-testid="button-generate-quick-playlist"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Consulting the Stars...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Generate My Quick Cosmic Playlist
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setShowEmailCollection(false)}
+                      className="text-gray-500"
+                    >
+                      ← Back to choose experience type
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Birth Data Form - Only show when not showing choice screen or email collection */}
+          {!showChoiceScreen && !showEmailCollection && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-center">Enter Your Birth Information</CardTitle>
