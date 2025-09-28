@@ -89,15 +89,53 @@ export class HarmonicCorrelationEngine {
       // Get chart harmonics from astrological data
       const chartHarmonics = astrologicalHarmonicsService.convertChartToHarmonics(chartData);
 
-      // Try full harmonic analysis with fallback system
-      const audioAnalysis = await harmonicAnalysisService.analyzeSpotifyPreview(
-        track.previewUrl || '',
-        { id: track.id, name: track.name, artist: track.artist },
-        {
-          spotifyService: options?.spotifyService,
-          accessToken: options?.accessToken
+      // Try full-track analysis first (better than 30-second clips)
+      let audioAnalysis: any = null;
+      
+      // Priority 1: Full-track audio analysis (best quality)
+      if (options?.spotifyService && options?.accessToken) {
+        try {
+          const fullAnalysis = await options.spotifyService.getAudioAnalysis(track.id, options.accessToken);
+          if (fullAnalysis) {
+            console.log(`Using full-track audio analysis for: ${track.name}`);
+            audioAnalysis = await harmonicAnalysisService.analyzeFromSpotifyAnalysis(
+              fullAnalysis,
+              { id: track.id, name: track.name, artist: track.artist }
+            );
+          }
+        } catch (error) {
+          console.warn(`Full audio analysis failed for ${track.name}, trying audio features:`, error);
         }
-      );
+      }
+      
+      // Priority 2: Audio features (good fallback)  
+      if (!audioAnalysis && options?.spotifyService && options?.accessToken) {
+        try {
+          const audioFeatures = await options.spotifyService.getAudioFeatures(track.id, options.accessToken);
+          if (audioFeatures) {
+            console.log(`Using audio features for: ${track.name}`);
+            audioAnalysis = await harmonicAnalysisService.analyzeFromAudioFeatures(
+              audioFeatures,
+              { id: track.id, name: track.name, artist: track.artist }
+            );
+          }
+        } catch (error) {
+          console.warn(`Audio features failed for ${track.name}, trying preview:`, error);
+        }
+      }
+      
+      // Priority 3: 30-second preview clips (last resort)
+      if (!audioAnalysis) {
+        console.log(`Falling back to preview clip analysis for: ${track.name}`);
+        audioAnalysis = await harmonicAnalysisService.analyzeSpotifyPreview(
+          track.previewUrl || '',
+          { id: track.id, name: track.name, artist: track.artist },
+          {
+            spotifyService: options?.spotifyService,
+            accessToken: options?.accessToken
+          }
+        );
+      }
 
       if (!audioAnalysis) {
         // Final fallback to chart-only analysis
