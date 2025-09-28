@@ -590,21 +590,39 @@ export class HarmonicAnalysisService {
     const startTime = Date.now();
 
     try {
-      // Try to get audio features as fallback
-      if (options?.spotifyService && options?.accessToken) {
+      // 🎯 NEW: Use Sonifyr service account for universal access to FULL audio analysis!
+      if (options?.spotifyService) {
         try {
-          const audioFeatures = await options.spotifyService.getAudioFeatures(trackData.id, options.accessToken);
-          if (audioFeatures) {
-            console.log(`Using Spotify audio features for harmonic analysis: ${trackData.name}`);
+          console.log(`🔍 Attempting full audio analysis via Sonifyr service account for: ${trackData.name}`);
+          
+          // Get FULL audio analysis + features using service account
+          const [audioFeatures, audioAnalysis] = await Promise.all([
+            options.spotifyService.getAudioFeatures(trackData.id),
+            options.spotifyService.getAudioAnalysis(trackData.id)
+          ]);
+
+          if (audioAnalysis) {
+            console.log(`🎵 SUCCESS: Got full Spotify audio analysis with ${audioAnalysis.segments?.length || 0} segments for: ${trackData.name}`);
+            const harmonicAnalysis = this.convertSpotifyToHarmonics(audioFeatures, audioAnalysis, trackData.id);
+            return {
+              previewUrl,
+              trackId: trackData.id,
+              name: trackData.name,
+              artist: trackData.artist,
+              harmonicAnalysis,
+              processingTime: Date.now() - startTime
+            };
+          } else if (audioFeatures) {
+            console.log(`🎵 Using Spotify audio features for harmonic analysis: ${trackData.name}`);
             return await this.analyzeFromAudioFeatures(audioFeatures, trackData);
           }
-        } catch (featureError) {
-          console.warn(`Could not get audio features for ${trackData.name}:`, featureError);
+        } catch (serviceError) {
+          console.warn(`Service account analysis failed for ${trackData.name}:`, serviceError);
         }
       }
 
-      // Final fallback to simulated analysis
-      console.log(`Creating simulated harmonic analysis for: ${trackData.name}`);
+      // Fallback only if service account fails
+      console.log(`⚠️ Creating simulated harmonic analysis for: ${trackData.name}`);
       const simulatedAnalysis = await this.analyzeLocalFile('', `simulated-${trackData.id}.mp3`);
       
       if (!simulatedAnalysis) {
