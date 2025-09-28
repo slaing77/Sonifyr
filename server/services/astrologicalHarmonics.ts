@@ -160,9 +160,9 @@ export class AstrologicalHarmonicsService {
     return {
       fundamentalFrequency: 256, // C4 as base frequency
       aspectHarmonics,
-      dominantHarmonics: [...new Set(dominantHarmonics)].sort((a, b) => a - b),
-      harmoniousAspects: [...new Set(harmoniousAspects)],
-      tensionAspects: [...new Set(tensionAspects)],
+      dominantHarmonics: Array.from(new Set(dominantHarmonics)).sort((a, b) => a - b),
+      harmoniousAspects: Array.from(new Set(harmoniousAspects)),
+      tensionAspects: Array.from(new Set(tensionAspects)),
       elementalTones
     };
   }

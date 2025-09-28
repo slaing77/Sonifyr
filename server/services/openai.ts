@@ -3,6 +3,7 @@ import type { BirthInfo, PlaylistData } from "@shared/schema";
 import { AstrologyService } from "./astrology";
 import { spotifyService, type SpotifyTrack } from "./spotify";
 import { storage } from "../storage";
+import { harmonicCorrelationEngine } from "./harmonicCorrelationEngine";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -336,6 +337,95 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
         for (const song of playlistData.songs) {
           song.rating = Math.floor(Math.random() * 2) + 4; // 4-5 stars for cosmic quality
         }
+      }
+    }
+    
+    // PLANETARY FREQUENCY ANALYSIS - NEW HARMONIC CORRELATION SYSTEM
+    if (playlistData.songs && Array.isArray(playlistData.songs)) {
+      try {
+        console.log('🌟 Starting planetary frequency analysis...');
+        
+        // Get user's astrological chart data
+        let chartData = {};
+        if (birthInfo) {
+          chartData = await this.astrologyService.calculateBigThreeAccurate({
+            date: birthInfo.date,
+            time: birthInfo.time,
+            location: birthInfo.location
+          });
+        }
+        
+        // Analyze each track for planetary resonances
+        const harmonicAnalyses = [];
+        for (const song of playlistData.songs) {
+          if (song.spotifyId) {
+            try {
+              const trackCorrelation = await harmonicCorrelationEngine.analyzeTrackCorrelation(
+                chartData,
+                {
+                  id: song.spotifyId,
+                  name: song.title,
+                  artist: song.artist,
+                  previewUrl: song.previewUrl
+                },
+                {
+                  spotifyService: spotifyService,
+                  accessToken: accessToken
+                }
+              );
+              
+              if (trackCorrelation) {
+                harmonicAnalyses.push(trackCorrelation);
+                
+                // Enhance song with planetary resonance data
+                song.planetaryResonance = {
+                  dominantPlanet: trackCorrelation.planetaryResonance?.dominantPlanet,
+                  cosmicAlignment: trackCorrelation.planetaryResonance?.cosmicAlignment || 0,
+                  harmonicScore: trackCorrelation.overallScore,
+                  insights: trackCorrelation.planetaryResonance?.insights || []
+                };
+                
+                console.log(`🎵 ${song.title}: ${trackCorrelation.planetaryResonance?.dominantPlanet || 'No dominant planet'} (${Math.round((trackCorrelation.planetaryResonance?.cosmicAlignment || 0) * 100)}% alignment)`);
+              }
+            } catch (error) {
+              console.warn(`Warning: Failed to analyze ${song.title}:`, error);
+            }
+          }
+        }
+        
+        // Generate dynamic playlist name based on planetary frequencies
+        if (harmonicAnalyses.length > 0) {
+          const dominantPlanets = harmonicAnalyses
+            .filter(a => a.planetaryResonance?.dominantPlanet)
+            .map(a => a.planetaryResonance!.dominantPlanet!)
+            .reduce((acc, planet) => {
+              acc[planet] = (acc[planet] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+          
+          const mostFrequentPlanet = Object.entries(dominantPlanets)
+            .sort((a, b) => b[1] - a[1])[0]?.[0];
+          
+          if (mostFrequentPlanet) {
+            // Replace generic name with planetary frequency-based name
+            const originalName = playlistData.name;
+            playlistData.name = `${mostFrequentPlanet} Frequencies Detected: Your Horoscope Your Soundtrack`;
+            
+            console.log(`🌟 Updated playlist name from "${originalName}" to "${playlistData.name}"`);
+            
+            // Enhance description with planetary frequency insights
+            const avgAlignment = harmonicAnalyses.reduce((sum, a) => sum + (a.planetaryResonance?.cosmicAlignment || 0), 0) / harmonicAnalyses.length;
+            const alignmentPercent = Math.round(avgAlignment * 100);
+            
+            playlistData.description = `${playlistData.description} Features strong ${mostFrequentPlanet} resonance at specific planetary frequencies with ${alignmentPercent}% cosmic alignment.`;
+          }
+        } else {
+          console.log('🌙 No planetary resonances detected - using astrological divination');
+        }
+        
+      } catch (error) {
+        console.error('Error in planetary frequency analysis:', error);
+        // Continue without planetary analysis
       }
     }
     
