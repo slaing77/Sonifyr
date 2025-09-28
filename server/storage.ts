@@ -381,6 +381,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async canUserGenerate(userId: string, feature: 'playlist' | 'horoscope' | 'chart' | 'transit'): Promise<boolean> {
+    // 🧪 TESTING MODE: Temporarily disable weekly limits to test planetary frequency detection
+    const TESTING_MODE = true;
+    if (TESTING_MODE) {
+      console.log(`🧪 TESTING MODE: Bypassing weekly limits for ${feature} generation`);
+      return true;
+    }
+
     const user = await this.getUser(userId);
     if (!user) return true; // Guest users can always generate
 
@@ -407,13 +414,16 @@ export class DatabaseStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return 0; // Guest users can always generate
 
+    // Chart readings are static - always allow regeneration
+    if (feature === 'chart') return 0;
+
     const fieldMap = {
       playlist: user.lastPlaylistGenerated,
       horoscope: user.lastHoroscopeGenerated,
       transit: user.lastTransitDetailsGenerated
     };
 
-    const lastGenerated = fieldMap[feature];
+    const lastGenerated = fieldMap[feature as keyof typeof fieldMap];
     if (!lastGenerated) return 0; // Never generated before
 
     // Calculate when they can generate next (7 days from last generation)

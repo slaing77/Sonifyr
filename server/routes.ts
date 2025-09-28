@@ -544,12 +544,17 @@ Each song is specifically chosen to align with the daily planetary energies you'
         return res.status(400).json({ error: "Email and birth information required" });
       }
 
-      // Check rate limiting for this email
-      const canGenerate = await storage.canGuestGenerate(email);
-      if (!canGenerate) {
-        return res.status(429).json({ 
-          error: "You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!" 
-        });
+      // 🧪 TESTING MODE: Temporarily disable guest rate limiting to test planetary frequency detection
+      const TESTING_MODE = true;
+      if (!TESTING_MODE) {
+        const canGenerate = await storage.canGuestGenerate(email);
+        if (!canGenerate) {
+          return res.status(429).json({ 
+            error: "You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!" 
+          });
+        }
+      } else {
+        console.log('🧪 TESTING MODE: Bypassing guest rate limiting for planetary frequency testing');
       }
 
       // Generate playlist using AI service
