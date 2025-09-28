@@ -312,7 +312,7 @@ export class PlanetaryFrequencyEngine {
     }
 
     return {
-      planetaryFrequencies: [...new Set(planetaryFrequencies)],
+      planetaryFrequencies: Array.from(new Set(planetaryFrequencies)),
       cosmicRatios
     };
   }
