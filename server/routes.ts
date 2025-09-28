@@ -455,8 +455,11 @@ Would you like me to explain the astrological reasoning behind any specific song
           console.log('Playlist - Generation check:', { userId, canGenerate });
           
           if (!canGenerate) {
+            const daysRemaining = await storage.getDaysUntilNextGeneration(userId, 'playlist');
+            const cosmicMessage = `✨ Your cosmic energy is recharging! ✨\n\nYour next personalized playlist will be ready in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} when the stars realign.`;
+            
             return res.status(429).json({ 
-              error: "Weekly playlist limit reached. You can get a new playlist once per week." 
+              error: cosmicMessage
             });
           }
         }

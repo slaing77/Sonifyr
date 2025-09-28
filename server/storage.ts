@@ -403,6 +403,32 @@ export class DatabaseStorage implements IStorage {
     return lastGenerated < oneWeekAgo;
   }
 
+  async getDaysUntilNextGeneration(userId: string, feature: 'playlist' | 'horoscope' | 'chart' | 'transit'): Promise<number> {
+    const user = await this.getUser(userId);
+    if (!user) return 0; // Guest users can always generate
+
+    const fieldMap = {
+      playlist: user.lastPlaylistGenerated,
+      horoscope: user.lastHoroscopeGenerated,
+      transit: user.lastTransitDetailsGenerated
+    };
+
+    const lastGenerated = fieldMap[feature];
+    if (!lastGenerated) return 0; // Never generated before
+
+    // Calculate when they can generate next (7 days from last generation)
+    const nextGenerationDate = new Date(lastGenerated.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    
+    if (now >= nextGenerationDate) return 0; // Can generate now
+    
+    // Calculate days remaining (round up to show full days)
+    const msRemaining = nextGenerationDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+    
+    return daysRemaining;
+  }
+
   async canUserExport(userId: string): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) return false; // Guest users cannot export
