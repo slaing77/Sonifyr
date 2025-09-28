@@ -765,53 +765,6 @@ export class SpotifyService {
     }
   }
 
-  /**
-   * Get audio features for a track - full track analysis for tempo, key, energy, etc.
-   * This replaces 30-second preview clips with complete song data
-   */
-  async getAudioFeatures(trackId: string, accessToken: string): Promise<any | null> {
-    try {
-      const response = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(`Failed to get audio features for track ${trackId}: ${response.status}`);
-        return null;
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting Spotify audio features:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Get detailed audio analysis for a track - full harmonic/structural analysis  
-   * This provides segments, pitches, timbre data across the entire track
-   */
-  async getAudioAnalysis(trackId: string, accessToken: string): Promise<any | null> {
-    try {
-      const response = await fetch(`https://api.spotify.com/v1/audio-analysis/${trackId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(`Failed to get audio analysis for track ${trackId}: ${response.status}`);
-        return null;
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting Spotify audio analysis:', error);
-      return null;
-    }
-  }
 
   /**
    * Batch get audio features for multiple tracks (more efficient)

@@ -92,35 +92,36 @@ export class HarmonicCorrelationEngine {
       // Try full-track analysis first (better than 30-second clips)
       let audioAnalysis: any = null;
       
-      // Priority 1: Full-track audio analysis (best quality)
-      if (options?.spotifyService && options?.accessToken) {
+      // Priority 1: Full-track audio analysis using Sonifyr service account (best quality)
+      if (options?.spotifyService) {
         try {
-          const fullAnalysis = await options.spotifyService.getAudioAnalysis(track.id, options.accessToken);
+          console.log(`🔍 Attempting Sonifyr service account audio analysis for: ${track.name}`);
+          const fullAnalysis = await options.spotifyService.getAudioAnalysis(track.id);
           if (fullAnalysis) {
-            console.log(`Using full-track audio analysis for: ${track.name}`);
+            console.log(`🎵 SUCCESS: Using full-track audio analysis via service account for: ${track.name}`);
             audioAnalysis = await harmonicAnalysisService.analyzeFromSpotifyAnalysis(
               fullAnalysis,
               { id: track.id, name: track.name, artist: track.artist }
             );
           }
         } catch (error) {
-          console.warn(`Full audio analysis failed for ${track.name}, trying audio features:`, error);
+          console.warn(`Service account audio analysis failed for ${track.name}, trying audio features:`, error);
         }
       }
       
-      // Priority 2: Audio features (good fallback)  
-      if (!audioAnalysis && options?.spotifyService && options?.accessToken) {
+      // Priority 2: Audio features using service account (good fallback)  
+      if (!audioAnalysis && options?.spotifyService) {
         try {
-          const audioFeatures = await options.spotifyService.getAudioFeatures(track.id, options.accessToken);
+          const audioFeatures = await options.spotifyService.getAudioFeatures(track.id);
           if (audioFeatures) {
-            console.log(`Using audio features for: ${track.name}`);
+            console.log(`🎵 Using audio features via service account for: ${track.name}`);
             audioAnalysis = await harmonicAnalysisService.analyzeFromAudioFeatures(
               audioFeatures,
               { id: track.id, name: track.name, artist: track.artist }
             );
           }
         } catch (error) {
-          console.warn(`Audio features failed for ${track.name}, trying preview:`, error);
+          console.warn(`Service account audio features failed for ${track.name}, trying preview:`, error);
         }
       }
       
