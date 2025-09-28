@@ -176,7 +176,7 @@ export default function Landing() {
           </div>
 
           {/* Choice Screen */}
-          {showChoiceScreen && parsedBirthData && (
+          {showChoiceScreen && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-center text-2xl">✨ Your Cosmic Profile is Ready ✨</CardTitle>
@@ -214,7 +214,10 @@ export default function Landing() {
                         </div>
                       </div>
                       <Button 
-                        onClick={() => setShowEmailCollection(true)}
+                        onClick={() => {
+                          alert('Quick Cosmic button clicked!');
+                          setShowEmailCollection(true);
+                        }}
                         disabled={isGenerating}
                         className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                         data-testid="button-quick-cosmic"
@@ -254,7 +257,10 @@ export default function Landing() {
                         </div>
                       </div>
                       <Button 
-                        onClick={() => generatePersonalizedPlaylist.mutate(parsedBirthData)}
+                        onClick={() => {
+                          alert('Personalized button clicked!');
+                          generatePersonalizedPlaylist.mutate(parsedBirthData);
+                        }}
                         disabled={isGenerating}
                         className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
                         data-testid="button-personalized-cosmic"
@@ -347,6 +353,7 @@ export default function Landing() {
                   <div className="flex flex-col gap-4 pt-6">
                     <Button 
                       onClick={() => {
+                        console.log('Generate Quick Playlist button clicked', { quickEmail, parsedBirthData });
                         if (!quickEmail || !quickEmail.includes('@')) {
                           toast({
                             title: "Valid email required",
@@ -422,13 +429,13 @@ export default function Landing() {
             </Card>
           )}
 
-          {/* Birth Data Form - Only show when not showing choice screen or email collection */}
-          {!showChoiceScreen && !showEmailCollection && (
+          {/* Birth Data Form - Always show unless email collection is active */}
+          {!showEmailCollection && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-center">Enter Your Birth Information</CardTitle>
                 <CardDescription className="text-center">
-                  Enter your email and birth details for your personalized cosmic playlist
+                  Enter your birth details, then choose your cosmic experience
                 </CardDescription>
               </CardHeader>
             <CardContent>
