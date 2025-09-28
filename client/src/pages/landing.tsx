@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sparkles, Music, Star, Crown } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
@@ -14,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import RotatingHeroText from "@/components/rotating-hero-text";
 
 const birthDataSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
   birthInfo: z.string().min(1, "Birth information is required").refine(
     (value) => {
       // Basic validation for format: mm/dd/yyyy time am/pm City, Country
@@ -25,6 +25,10 @@ const birthDataSchema = z.object({
       message: "Please use format: mm/dd/yyyy 00:00 am/pm City, Country (e.g., 3/15/1990 2:30 pm New York, USA)"
     }
   ),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+  newsletterPreference: z.enum(["newsletter", "playlist-only"], {
+    required_error: "Please select your preference",
+  }),
 });
 
 type BirthData = z.infer<typeof birthDataSchema>;
@@ -40,8 +44,9 @@ export default function Landing() {
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
-      email: "",
       birthInfo: "",
+      email: "",
+      newsletterPreference: "newsletter",
     },
   });
 
@@ -94,7 +99,13 @@ export default function Landing() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: data.email, birthDate, birthTime, birthLocation }),
+        body: JSON.stringify({ 
+          email: data.email, 
+          newsletterPreference: data.newsletterPreference,
+          birthDate, 
+          birthTime, 
+          birthLocation 
+        }),
       });
       if (!response.ok) {
         throw new Error('Failed to generate playlist');
@@ -154,34 +165,17 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* Birth Information - Top Priority */}
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      data-testid="input-email"
-                      {...form.register("email")}
-                      className="text-center"
-                    />
-                    <p className="text-sm text-gray-500 text-center">
-                      Used for rate limiting - one playlist per week per email
-                    </p>
-                    {form.formState.errors.email && (
-                      <p className="text-sm text-red-500 text-center">{form.formState.errors.email.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="birthInfo">Birth Information</Label>
+                    <Label htmlFor="birthInfo" className="text-lg font-semibold">🌟 Your Cosmic Birth Data</Label>
                     <Input
                       id="birthInfo"
                       type="text"
                       placeholder="3/15/1990 2:30 pm New York, USA"
                       data-testid="input-birth-info"
                       {...form.register("birthInfo")}
-                      className="text-center"
+                      className="text-center text-lg py-3"
                     />
                     <p className="text-sm text-gray-500 text-center">
                       Format: mm/dd/yyyy 00:00 am/pm City, Country
@@ -189,6 +183,58 @@ export default function Landing() {
                     {form.formState.errors.birthInfo && (
                       <p className="text-sm text-red-500 text-center">{form.formState.errors.birthInfo.message}</p>
                     )}
+                  </div>
+                  
+                  {/* Email and Newsletter Preferences */}
+                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">📧 Your Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your.email@example.com"
+                        data-testid="input-email"
+                        {...form.register("email")}
+                        className="text-center"
+                      />
+                      <p className="text-sm text-gray-500 text-center">
+                        Rate limiting: one free playlist per week per email
+                      </p>
+                      {form.formState.errors.email && (
+                        <p className="text-sm text-red-500 text-center">{form.formState.errors.email.message}</p>
+                      )}
+                    </div>
+                    
+                    {/* Newsletter Preference */}
+                    <div className="space-y-3">
+                      <Label className="text-base font-medium">Choose your cosmic journey:</Label>
+                      <RadioGroup
+                        value={form.watch("newsletterPreference")}
+                        onValueChange={(value: "newsletter" | "playlist-only") => 
+                          form.setValue("newsletterPreference", value)
+                        }
+                        className="space-y-3"
+                      >
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border border-purple-200 bg-purple-50">
+                          <RadioGroupItem value="newsletter" id="newsletter" data-testid="radio-newsletter" />
+                          <Label htmlFor="newsletter" className="flex-1 cursor-pointer">
+                            <div className="font-medium text-purple-800">🌙 Join the cosmic newsletter</div>
+                            <div className="text-sm text-purple-600">Monthly astro reports, planetary insights, and exclusive content</div>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                          <RadioGroupItem value="playlist-only" id="playlist-only" data-testid="radio-playlist-only" />
+                          <Label htmlFor="playlist-only" className="flex-1 cursor-pointer">
+                            <div className="font-medium text-gray-700">🎵 Just send me my playlist</div>
+                            <div className="text-sm text-gray-600">One-time cosmic playlist without future updates</div>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                      {form.formState.errors.newsletterPreference && (
+                        <p className="text-sm text-red-500 text-center">{form.formState.errors.newsletterPreference.message}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
