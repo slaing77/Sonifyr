@@ -2891,7 +2891,7 @@ ${daily.horoscope}
       const description = req.query.description as string || 'Discover your personalized cosmic playlist curated by AI and astrology. Songs chosen based on planetary influences and astrological insights.';
       const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
       const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-      const imageUrl = `${baseUrl}/cosmic-collage.jpg`;
+      const imageUrl = `${baseUrl}/cosmic-playlist-share.svg`;
       const playlistUrl = `${baseUrl}/playlist-result`;
       
       // Generate dynamic meta tags

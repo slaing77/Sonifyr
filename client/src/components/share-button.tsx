@@ -151,6 +151,7 @@ export default function ShareButton({ type, sessionId, variant = 'outline', size
         duration: 5000,
       });
     } catch (clipboardError) {
+      console.error('Error sharing:', clipboardError);
       // If clipboard also fails, show instructions
       toast({
         title: "Share on Facebook",
