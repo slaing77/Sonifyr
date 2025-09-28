@@ -25,10 +25,6 @@ const birthDataSchema = z.object({
       message: "Please use format: mm/dd/yyyy 00:00 am/pm City, Country (e.g., 3/15/1990 2:30 pm New York, USA)"
     }
   ),
-  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
-  newsletterPreference: z.enum(["newsletter", "playlist-only"], {
-    required_error: "Please select your preference",
-  }),
 });
 
 type BirthData = z.infer<typeof birthDataSchema>;
@@ -49,8 +45,6 @@ export default function Landing() {
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
       birthInfo: "",
-      email: "",
-      newsletterPreference: "newsletter",
     },
   });
 
@@ -148,8 +142,6 @@ export default function Landing() {
     
     // Store parsed data and show choice screen
     setParsedBirthData({
-      email: data.email,
-      newsletterPreference: data.newsletterPreference,
       birthDate,
       birthTime,
       birthLocation
@@ -331,57 +323,6 @@ export default function Landing() {
                     )}
                   </div>
                   
-                  {/* Email and Newsletter Preferences */}
-                  <div className="space-y-4 pt-4 border-t border-gray-200">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">📧 Your Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        data-testid="input-email"
-                        {...form.register("email")}
-                        className="text-center"
-                      />
-                      <p className="text-sm text-gray-500 text-center">
-                        Rate limiting: one free playlist per week per email
-                      </p>
-                      {form.formState.errors.email && (
-                        <p className="text-sm text-red-500 text-center">{form.formState.errors.email.message}</p>
-                      )}
-                    </div>
-                    
-                    {/* Newsletter Preference */}
-                    <div className="space-y-3">
-                      <Label className="text-base font-medium">Choose your cosmic journey:</Label>
-                      <RadioGroup
-                        value={form.watch("newsletterPreference")}
-                        onValueChange={(value: "newsletter" | "playlist-only") => 
-                          form.setValue("newsletterPreference", value)
-                        }
-                        className="space-y-3"
-                      >
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border border-purple-200 bg-purple-50">
-                          <RadioGroupItem value="newsletter" id="newsletter" data-testid="radio-newsletter" />
-                          <Label htmlFor="newsletter" className="flex-1 cursor-pointer">
-                            <div className="font-medium text-purple-800">🌙 Sign me up!</div>
-                            <div className="text-sm text-purple-600">Your Chart. Your Sound. Your Weekly Sonifyr</div>
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
-                          <RadioGroupItem value="playlist-only" id="playlist-only" data-testid="radio-playlist-only" />
-                          <Label htmlFor="playlist-only" className="flex-1 cursor-pointer">
-                            <div className="font-medium text-gray-700">🎵 Just send me my playlist</div>
-                            <div className="text-sm text-gray-600">One-time cosmic playlist without future updates</div>
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                      {form.formState.errors.newsletterPreference && (
-                        <p className="text-sm text-red-500 text-center">{form.formState.errors.newsletterPreference.message}</p>
-                      )}
-                    </div>
-                  </div>
                 </div>
                 
                 <div className="text-center">
@@ -425,7 +366,6 @@ export default function Landing() {
                         </>
                       )}
                     </Button>
-                  )}
                 </div>
               </form>
             </CardContent>
