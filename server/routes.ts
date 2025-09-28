@@ -1433,14 +1433,58 @@ ${daily.horoscope}
     }
   });
 
+  // Personalized Spotify authentication (with birth data)
+  app.get('/api/spotify/personalized-auth', async (req, res) => {
+    try {
+      const { state } = req.query;
+      
+      if (!state) {
+        return res.status(400).json({ error: "Birth data state required" });
+      }
+      
+      // Parse birth data from state
+      let birthData;
+      try {
+        birthData = JSON.parse(decodeURIComponent(state as string));
+      } catch (error) {
+        return res.status(400).json({ error: "Invalid birth data state" });
+      }
+      
+      // Validate required fields
+      if (!birthData.birthDate || !birthData.birthTime || !birthData.birthLocation || !birthData.email) {
+        return res.status(400).json({ error: "Missing required birth data fields" });
+      }
+      
+      // Create state for OAuth that includes birth data
+      const oauthState = `personalized_${Date.now()}_${JSON.stringify(birthData)}`;
+      const authUrl = spotifyService.getAuthUrl(oauthState);
+      
+      console.log("\n=== PERSONALIZED SPOTIFY AUTH REQUEST ===");
+      console.log("Birth data:", {
+        email: birthData.email,
+        birthDate: birthData.birthDate,
+        birthTime: birthData.birthTime,
+        birthLocation: birthData.birthLocation
+      });
+      console.log("Auth URL:", authUrl);
+      console.log("===============================");
+      
+      // Redirect directly to Spotify (since this is called from window.location.href)
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error("Error getting personalized Spotify auth URL:", error);
+      res.status(500).json({ error: "Failed to get Spotify auth URL" });
+    }
+  });
+
   // Spotify OAuth callback
   app.get('/api/spotify/callback', async (req, res) => {
     try {
-      const { code, state: userId, error } = req.query;
+      const { code, state, error } = req.query;
       
       console.log("\n=== SPOTIFY CALLBACK RECEIVED ===");
       console.log("Code received:", !!code);
-      console.log("User ID:", userId);
+      console.log("State:", state);
       console.log("Error:", error || "none");
       console.log("=================================");
       
@@ -1449,8 +1493,8 @@ ${daily.horoscope}
         return res.redirect('/?spotify=error&reason=' + encodeURIComponent(error as string));
       }
       
-      if (!code || !userId) {
-        console.error("Missing parameters in Spotify callback:", { code: !!code, userId });
+      if (!code || !state) {
+        console.error("Missing parameters in Spotify callback:", { code: !!code, state: !!state });
         return res.status(400).json({ error: "Missing code or state parameter" });
       }
 
@@ -1460,8 +1504,100 @@ ${daily.horoscope}
       // Get user's Spotify profile
       const spotifyUser = await spotifyService.getUserProfile(tokens.access_token);
       
-      // Check if this is a guest user
-      const isGuest = (userId as string).startsWith('guest_');
+      // Check if this is a personalized auth (contains birth data)
+      const isPersonalized = (state as string).startsWith('personalized_');
+      
+      if (isPersonalized) {
+        // Extract birth data from state
+        const stateData = (state as string).substring('personalized_'.length);
+        const timestampEndIndex = stateData.indexOf('_');
+        const birthDataString = stateData.substring(timestampEndIndex + 1);
+        
+        let birthData;
+        try {
+          birthData = JSON.parse(birthDataString);
+        } catch (error) {
+          console.error("Error parsing birth data from state:", error);
+          return res.redirect('/?spotify=error&reason=invalid_birth_data');
+        }
+        
+        console.log("\n=== PERSONALIZED PLAYLIST GENERATION ===");
+        console.log("Birth data:", {
+          email: birthData.email,
+          birthDate: birthData.birthDate,
+          birthTime: birthData.birthTime,
+          birthLocation: birthData.birthLocation
+        });
+        console.log("Spotify user:", spotifyUser.display_name);
+        console.log("===============================");
+        
+        try {
+          // Get user's music profile
+          const musicProfile = await spotifyService.getUserMusicProfile(tokens.access_token);
+          
+          // Generate personalized playlist with Spotify integration
+          const playlistData = await openAIService.generatePersonalizedPlaylist({
+            date: birthData.birthDate,
+            time: birthData.birthTime,
+            location: birthData.birthLocation,
+          }, 'guest', tokens.access_token, musicProfile);
+          
+          // Handle email sending if requested
+          if (birthData.email && birthData.newsletterPreference === 'newsletter') {
+            try {
+              await storage.addNewsletterSubscriber(birthData.email, {
+                birthDate: birthData.birthDate,
+                birthTime: birthData.birthTime,
+                birthLocation: birthData.birthLocation,
+              });
+            } catch (error) {
+              console.error('Error adding newsletter subscriber:', error);
+              // Don't fail the playlist generation for newsletter errors
+            }
+          }
+          
+          // Store the generated playlist data in localStorage for the results page
+          const resultData = {
+            ...playlistData,
+            spotifyConnected: true,
+            spotifyUser: {
+              id: spotifyUser.id,
+              display_name: spotifyUser.display_name
+            }
+          };
+          
+          // Create a success page that stores data and redirects
+          res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Personalized Cosmic Playlist Ready!</title>
+            </head>
+            <body>
+              <script>
+                try {
+                  localStorage.setItem('guestPlaylist', ${JSON.stringify(JSON.stringify(resultData))});
+                  window.location.href = '/playlist-result?personalized=true';
+                } catch (error) {
+                  console.error('Error storing playlist data:', error);
+                  window.location.href = '/?spotify=error&reason=storage_error';
+                }
+              </script>
+              <h2>🎵 Generating your personalized cosmic playlist...</h2>
+              <p>Please wait while we redirect you to your results...</p>
+            </body>
+            </html>
+          `);
+          return;
+        } catch (error) {
+          console.error("Error generating personalized playlist:", error);
+          return res.redirect('/?spotify=error&reason=playlist_generation_failed');
+        }
+      }
+      
+      // Handle regular authentication flow
+      const userId = state as string;
+      const isGuest = userId.startsWith('guest_');
       
       if (isGuest) {
         // For guest users, return auth data via a special page that communicates with parent window

@@ -106,7 +106,7 @@ export default function Landing() {
       setIsGenerating(true);
       // First, redirect to Spotify OAuth with birth data in state
       const state = encodeURIComponent(JSON.stringify(birthData));
-      window.location.href = `/api/spotify/auth?state=${state}`;
+      window.location.href = `/api/spotify/personalized-auth?state=${state}`;
       return null; // Won't reach this due to redirect
     },
     onError: (error: any) => {
