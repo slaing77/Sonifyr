@@ -290,7 +290,7 @@ export default function Landing() {
           )}
 
           {/* Email Collection Screen - Only show after Quick Cosmic Experience selection */}
-          {showEmailCollection && parsedBirthData && (
+          {showEmailCollection && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-center text-2xl">⚡ Quick Cosmic Experience</CardTitle>
@@ -355,8 +355,39 @@ export default function Landing() {
                           });
                           return;
                         }
+                        // Use parsedBirthData if available, otherwise get it from form
+                        const birthData = parsedBirthData || (() => {
+                          const formData = form.getValues();
+                          const birthInfoParts = formData.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
+                          if (!birthInfoParts) return null;
+                          
+                          const [, month, day, year, hour, minute, ampm, location] = birthInfoParts;
+                          let hour24 = parseInt(hour);
+                          if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
+                            hour24 += 12;
+                          } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
+                            hour24 = 0;
+                          }
+                          
+                          return {
+                            birthDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+                            birthTime: `${hour24.toString().padStart(2, '0')}:${minute}`,
+                            birthLocation: location.trim()
+                          };
+                        })();
+                        
+                        if (!birthData) {
+                          toast({
+                            title: "Birth data required",
+                            description: "Please complete the birth information form first",
+                            variant: "destructive",
+                          });
+                          setShowEmailCollection(false);
+                          return;
+                        }
+                        
                         generateQuickPlaylist.mutate({
-                          ...parsedBirthData,
+                          ...birthData,
                           email: quickEmail,
                           newsletterPreference: quickNewsletterPreference
                         });

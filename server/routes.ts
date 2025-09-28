@@ -1481,8 +1481,8 @@ ${daily.horoscope}
         return res.status(400).json({ error: "Missing required birth data fields" });
       }
       
-      // Create state for OAuth that includes birth data
-      const oauthState = `personalized_${Date.now()}_${JSON.stringify(birthData)}`;
+      // Create state for OAuth that includes birth data (URL encode to handle special characters)
+      const oauthState = `personalized_${Date.now()}_${encodeURIComponent(JSON.stringify(birthData))}`;
       const authUrl = spotifyService.getAuthUrl(oauthState);
       
       console.log("\n=== PERSONALIZED SPOTIFY AUTH REQUEST ===");
@@ -1541,9 +1541,11 @@ ${daily.horoscope}
         
         let birthData;
         try {
-          birthData = JSON.parse(birthDataString);
+          // URL decode the birth data string first
+          const decodedBirthDataString = decodeURIComponent(birthDataString);
+          birthData = JSON.parse(decodedBirthDataString);
         } catch (error) {
-          console.error("Error parsing birth data from state:", error);
+          console.error("Error parsing birth data from state:", error, "Raw state:", state);
           return res.redirect('/?spotify=error&reason=invalid_birth_data');
         }
         
