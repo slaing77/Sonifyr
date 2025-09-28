@@ -218,8 +218,8 @@ export default function Landing() {
                         <div className="flex items-center space-x-3 p-3 rounded-lg border border-purple-200 bg-purple-50">
                           <RadioGroupItem value="newsletter" id="newsletter" data-testid="radio-newsletter" />
                           <Label htmlFor="newsletter" className="flex-1 cursor-pointer">
-                            <div className="font-medium text-purple-800">🌙 Join the cosmic newsletter</div>
-                            <div className="text-sm text-purple-600">Monthly astro reports, planetary insights, and exclusive content</div>
+                            <div className="font-medium text-purple-800">🌙 Sign me up!</div>
+                            <div className="text-sm text-purple-600">Your Chart. Your Sound. Your Weekly Sonifyr</div>
                           </Label>
                         </div>
                         
