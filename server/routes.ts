@@ -535,10 +535,18 @@ Each song is specifically chosen to align with the daily planetary energies you'
   // Generate guest playlist without authentication (FREE VERSION ENDPOINT)
   app.post("/api/generate-guest-playlist", async (req, res) => {
     try {
-      const { birthDate, birthTime, birthLocation } = req.body;
+      const { email, birthDate, birthTime, birthLocation } = req.body;
       
-      if (!birthDate || !birthTime || !birthLocation) {
-        return res.status(400).json({ error: "Birth information required" });
+      if (!email || !birthDate || !birthTime || !birthLocation) {
+        return res.status(400).json({ error: "Email and birth information required" });
+      }
+
+      // Check rate limiting for this email
+      const canGenerate = await storage.canGuestGenerate(email);
+      if (!canGenerate) {
+        return res.status(429).json({ 
+          error: "You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!" 
+        });
       }
 
       // Generate playlist using AI service
@@ -547,6 +555,9 @@ Each song is specifically chosen to align with the daily planetary energies you'
         time: birthTime,
         location: birthLocation,
       }, null); // No music profile for guest users
+
+      // Update rate limiting timestamp
+      await storage.touchGuestPlaylistGenerated(email);
 
       // Return the playlist data directly (no database storage for guests)
       res.json(playlistData);
