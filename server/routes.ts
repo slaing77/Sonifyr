@@ -1442,11 +1442,17 @@ ${daily.horoscope}
         return res.status(400).json({ error: "Birth data state required" });
       }
       
-      // Parse birth data from state
+      // Parse birth data from state (base64url decoded)
       let birthData;
       try {
-        birthData = JSON.parse(decodeURIComponent(state as string));
+        // Convert base64url back to base64
+        const base64State = (state as string).replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        const paddedState = base64State + '='.repeat((4 - base64State.length % 4) % 4);
+        const decodedState = Buffer.from(paddedState, 'base64').toString('utf-8');
+        birthData = JSON.parse(decodedState);
       } catch (error) {
+        console.error("Error parsing birth data state:", error, "State:", state);
         return res.status(400).json({ error: "Invalid birth data state" });
       }
       

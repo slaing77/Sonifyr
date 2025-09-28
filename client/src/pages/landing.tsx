@@ -103,8 +103,9 @@ export default function Landing() {
   const generatePersonalizedPlaylist = useMutation({
     mutationFn: async (birthData: any) => {
       setIsGenerating(true);
-      // First, redirect to Spotify OAuth with birth data in state
-      const state = encodeURIComponent(JSON.stringify(birthData));
+      // First, redirect to Spotify OAuth with birth data in state using base64url encoding
+      const stateData = JSON.stringify(birthData);
+      const state = btoa(stateData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
       window.location.href = `/api/spotify/personalized-auth?state=${state}`;
       return null; // Won't reach this due to redirect
     },
