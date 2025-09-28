@@ -312,7 +312,7 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
               
               // Generate a cosmic rating based on popularity and energy
               const baseRating = Math.min(5, Math.max(1, Math.round(spotifyTrack.popularity / 20))); // Convert 0-100 to 1-5
-              const energyBonus = spotifyTrack.audio_features?.energy > 0.7 ? 0.5 : 0;
+              const energyBonus = (spotifyTrack.audio_features?.energy || 0) > 0.7 ? 0.5 : 0;
               song.rating = Math.min(5, Math.max(1, baseRating + energyBonus));
               
               console.log(`Enriched: ${song.title} - Rating: ${song.rating}, Preview: ${!!song.previewUrl}`);
@@ -422,25 +422,24 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
         } else {
           console.log('🌙 No planetary resonances detected - using astrological divination');
         }
-        
+    
+        // ADD ASTROLOGICAL SIGNS TO PLAYLIST DATA FOR SPOTIFY PERSONALIZATION
+        if (playlistData && birthInfo && chartData.bigThree) {
+          try {
+            // Add sun sign and moon sign for Spotify description personalization
+            playlistData.sunSign = chartData.bigThree.sunSign;
+            playlistData.moonSign = chartData.bigThree.moonSign;
+            playlistData.risingSign = chartData.bigThree.risingSign;
+            console.log(`📋 Added astrological signs to playlist data: ${playlistData.sunSign} Sun, ${playlistData.moonSign} Moon`);
+          } catch (error) {
+            console.warn('Warning: Failed to add astrological signs to playlist data:', error);
+          }
+        } else {
+          console.log('📋 No astrological signs available for playlist personalization');
+        }
       } catch (error) {
         console.error('Error in planetary frequency analysis:', error);
         // Continue without planetary analysis
-      }
-    }
-    
-    // ADD ASTROLOGICAL SIGNS TO PLAYLIST DATA FOR SPOTIFY PERSONALIZATION
-    if (playlistData && birthInfo) {
-      try {
-        // Add sun sign and moon sign for Spotify description personalization
-        if (chartData.bigThree) {
-          playlistData.sunSign = chartData.bigThree.sunSign;
-          playlistData.moonSign = chartData.bigThree.moonSign;
-          playlistData.risingSign = chartData.bigThree.risingSign;
-          console.log(`📋 Added astrological signs to playlist data: ${playlistData.sunSign} Sun, ${playlistData.moonSign} Moon`);
-        }
-      } catch (error) {
-        console.warn('Warning: Failed to add astrological signs to playlist data:', error);
       }
     }
     
