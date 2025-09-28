@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import RotatingHeroText from "@/components/rotating-hero-text";
 
 const birthDataSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
   birthInfo: z.string().min(1, "Birth information is required").refine(
     (value) => {
       // Basic validation for format: mm/dd/yyyy time am/pm City, Country
@@ -39,6 +40,7 @@ export default function Landing() {
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
+      email: "",
       birthInfo: "",
     },
   });
@@ -92,7 +94,7 @@ export default function Landing() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ birthDate, birthTime, birthLocation }),
+        body: JSON.stringify({ email: data.email, birthDate, birthTime, birthLocation }),
       });
       if (!response.ok) {
         throw new Error('Failed to generate playlist');
@@ -147,12 +149,30 @@ export default function Landing() {
             <CardHeader>
               <CardTitle className="text-center">Enter Your Birth Information</CardTitle>
               <CardDescription className="text-center">
-                We need your birth details to calculate your cosmic playlist
+                Enter your email and birth details for your personalized cosmic playlist
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      data-testid="input-email"
+                      {...form.register("email")}
+                      className="text-center"
+                    />
+                    <p className="text-sm text-gray-500 text-center">
+                      Used for rate limiting - one playlist per week per email
+                    </p>
+                    {form.formState.errors.email && (
+                      <p className="text-sm text-red-500 text-center">{form.formState.errors.email.message}</p>
+                    )}
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="birthInfo">Birth Information</Label>
                     <Input
