@@ -281,24 +281,38 @@ export default function PlaylistResult() {
 
           {/* Action Buttons */}
           <div className="grid md:grid-cols-3 gap-4 mb-8">
-            <Button 
-              onClick={handleSpotifyExport}
-              disabled={isExporting}
-              data-testid="button-export-spotify"
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isExporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Export to Spotify
-                </>
-              )}
-            </Button>
+            {/* Spotify Button - different behavior based on auto-export status */}
+            {(playlistData as any).spotifyPlaylistUrl ? (
+              // Quick Cosmic Experience - Auto-exported, show Open in Spotify
+              <Button 
+                onClick={() => window.open((playlistData as any).spotifyPlaylistUrl, '_blank')}
+                data-testid="button-open-spotify"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in Spotify
+              </Button>
+            ) : (
+              // Personalized or failed auto-export - show export button
+              <Button 
+                onClick={handleSpotifyExport}
+                disabled={isExporting}
+                data-testid="button-export-spotify"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Export to Spotify
+                  </>
+                )}
+              </Button>
+            )}
             
             <Button 
               variant="outline" 
