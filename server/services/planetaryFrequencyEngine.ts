@@ -207,6 +207,7 @@ export class PlanetaryFrequencyEngine {
 
   /**
    * Calculate how strongly a track resonates with a specific planetary frequency
+   * Enhanced for synthesized audio sources with subharmonic detection
    */
   private calculatePlanetaryResonance(
     planetaryFreq: PlanetaryFrequency,
@@ -217,22 +218,25 @@ export class PlanetaryFrequencyEngine {
     let matchCount = 0;
     let dominantHarmonic = 1;
 
-    // Check each harmonic in the planetary series against audio harmonics
+    // Adjust tolerance based on analysis type - synthesized sources need wider tolerance
+    const isSynthesized = audioAnalysis.analysisType === 'audio_features' || audioAnalysis.analysisType === 'full_audio';
+    const tolerancePercent = isSynthesized ? 0.035 : 0.02; // 3.5% for synthesized, 2% for real audio
+    const confidenceWeight = audioAnalysis.confidence || 0.5;
+
+    // Check each harmonic in the planetary series against audio harmonics  
     for (let i = 0; i < planetaryFreq.harmonicSeries.length; i++) {
       const planetaryHz = planetaryFreq.harmonicSeries[i];
       
       for (const audioHarmonic of audioAnalysis.harmonics) {
-        const frequencyDiff = Math.abs(audioHarmonic.frequency - planetaryHz);
-        const tolerance = planetaryHz * 0.02; // 2% tolerance
+        const matches = this.findFrequencyMatches(planetaryHz, audioHarmonic, tolerancePercent);
         
-        if (frequencyDiff <= tolerance) {
-          // Found a match!
-          const matchStrength = (1 - frequencyDiff / tolerance) * audioHarmonic.amplitude;
+        for (const match of matches) {
+          const matchStrength = match.strength * audioHarmonic.amplitude * confidenceWeight;
           totalResonance += matchStrength;
           matchCount++;
-          detectedFrequencies.push(audioHarmonic.frequency);
+          detectedFrequencies.push(match.frequency);
           
-          if (matchStrength > totalResonance / matchCount) {
+          if (matchStrength > (totalResonance / matchCount) * 0.8) { // Threshold for dominant
             dominantHarmonic = i + 1;
           }
         }
@@ -253,6 +257,64 @@ export class PlanetaryFrequencyEngine {
         detectedFrequencies.length
       )
     };
+  }
+
+  /**
+   * Find frequency matches including subharmonics for better detection
+   * Checks fundamental, 2x, 3x, 4x and also 1/2, 1/3, 1/4 subharmonics
+   */
+  private findFrequencyMatches(
+    planetaryHz: number, 
+    audioHarmonic: { frequency: number; amplitude: number }, 
+    tolerancePercent: number
+  ): Array<{ frequency: number; strength: number; type: string }> {
+    const matches: Array<{ frequency: number; strength: number; type: string }> = [];
+    const tolerance = planetaryHz * tolerancePercent;
+
+    // 1. Direct frequency match
+    const directDiff = Math.abs(audioHarmonic.frequency - planetaryHz);
+    if (directDiff <= tolerance) {
+      matches.push({
+        frequency: audioHarmonic.frequency,
+        strength: 1 - (directDiff / tolerance),
+        type: 'fundamental'
+      });
+    }
+
+    // 2. Check if audio frequency is a subharmonic of planetary frequency
+    // This catches cases where the fundamental is below the planetary range
+    const subharmonicDivisors = [2, 3, 4, 5];
+    for (const divisor of subharmonicDivisors) {
+      const subharmonicFreq = planetaryHz / divisor;
+      const subDiff = Math.abs(audioHarmonic.frequency - subharmonicFreq);
+      const subTolerance = subharmonicFreq * tolerancePercent;
+      
+      if (subDiff <= subTolerance) {
+        matches.push({
+          frequency: audioHarmonic.frequency,
+          strength: (1 - (subDiff / subTolerance)) * (0.8 / divisor), // Weighted by harmonic distance
+          type: `subharmonic_${divisor}`
+        });
+      }
+    }
+
+    // 3. Check if planetary frequency is a subharmonic of audio frequency
+    // This catches higher harmonics in the audio that relate to lower planetary fundamentals
+    for (const divisor of subharmonicDivisors) {
+      const audioSubharmonic = audioHarmonic.frequency / divisor;
+      const superDiff = Math.abs(audioSubharmonic - planetaryHz);
+      const superTolerance = planetaryHz * tolerancePercent;
+      
+      if (superDiff <= superTolerance) {
+        matches.push({
+          frequency: audioHarmonic.frequency,
+          strength: (1 - (superDiff / superTolerance)) * (0.6 / divisor), // Lower weight for these matches
+          type: `superharmonic_${divisor}`
+        });
+      }
+    }
+
+    return matches;
   }
 
   /**
