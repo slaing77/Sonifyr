@@ -653,6 +653,91 @@ export class SpotifyService {
       throw error;
     }
   }
+
+  /**
+   * Get audio features for a track - full track analysis for tempo, key, energy, etc.
+   * This replaces 30-second preview clips with complete song data
+   */
+  async getAudioFeatures(trackId: string, accessToken: string): Promise<any | null> {
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`Failed to get audio features for track ${trackId}: ${response.status}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting Spotify audio features:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get detailed audio analysis for a track - full harmonic/structural analysis  
+   * This provides segments, pitches, timbre data across the entire track
+   */
+  async getAudioAnalysis(trackId: string, accessToken: string): Promise<any | null> {
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/audio-analysis/${trackId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`Failed to get audio analysis for track ${trackId}: ${response.status}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting Spotify audio analysis:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Batch get audio features for multiple tracks (more efficient)
+   */
+  async getBatchAudioFeatures(trackIds: string[], accessToken: string): Promise<any[]> {
+    try {
+      // Spotify allows up to 100 tracks per request
+      const chunks = this.chunkArray(trackIds, 100);
+      const allFeatures: any[] = [];
+
+      for (const chunk of chunks) {
+        const response = await fetch(`https://api.spotify.com/v1/audio-features?ids=${chunk.join(',')}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          allFeatures.push(...(data.audio_features || []));
+        }
+      }
+
+      return allFeatures.filter(Boolean); // Remove null entries
+    } catch (error) {
+      console.error('Error getting batch audio features:', error);
+      return [];
+    }
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
 }
 
 export const spotifyService = new SpotifyService();
