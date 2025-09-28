@@ -108,6 +108,153 @@ export class SpotifyService {
     return this.serviceAccountToken!;
   }
 
+  /**
+   * Get access token using Sonifyr's stored refresh token for playlist creation
+   */
+  private async getServiceUserAccessToken(): Promise<string> {
+    const refreshToken = process.env.SPOTIFY_SERVICE_REFRESH_TOKEN;
+    if (!refreshToken) {
+      throw new Error('SPOTIFY_SERVICE_REFRESH_TOKEN not configured. Please set up Sonifyr user refresh token.');
+    }
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+      },
+      body: `grant_type=refresh_token&refresh_token=${refreshToken}`,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to refresh Sonifyr access token: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.access_token;
+  }
+
+  /**
+   * Create playlist using Sonifyr's service account
+   */
+  async createServicePlaylist(name: string, description: string, songs: any[]): Promise<{
+    id: string;
+    external_urls: { spotify: string };
+  }> {
+    try {
+      console.log('Creating playlist with service account:', { name, description, trackCount: songs.length });
+      
+      const accessToken = await this.getServiceUserAccessToken();
+      
+      // Create playlist on Sonifyr's account (use /me endpoint)
+      const playlistResponse = await fetch(`https://api.spotify.com/v1/me/playlists`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.slice(0, 100), // Spotify has a 100 character limit
+          description: description.slice(0, 300), // Keep description under 300 chars
+          public: true, // Make playlists public so they can be shared
+        }),
+      });
+
+      if (!playlistResponse.ok) {
+        const errorText = await playlistResponse.text();
+        console.error('Spotify service playlist creation failed:', playlistResponse.status, errorText);
+        throw new Error(`Failed to create service playlist: ${playlistResponse.status} ${errorText}`);
+      }
+
+      const playlist = await playlistResponse.json();
+      console.log('Service playlist created:', playlist.id);
+
+      // Search for songs and add tracks to playlist
+      if (songs.length > 0) {
+        const trackIds: string[] = [];
+        
+        for (const song of songs) {
+          try {
+            console.log(`Searching for: ${song.artist} ${song.title}`);
+            
+            if (!song.artist || !song.title) {
+              console.warn(`Invalid song data:`, song);
+              continue;
+            }
+            
+            // First try exact search with quotes
+            let searchQuery = `track:"${song.title}" artist:"${song.artist}"`;
+            let searchResults = await this.searchTracks(accessToken, searchQuery, 10);
+            
+            // If no exact matches, try partial matching
+            if (searchResults.length === 0) {
+              searchQuery = `${song.artist} ${song.title}`;
+              searchResults = await this.searchTracks(accessToken, searchQuery, 10);
+            }
+            
+            if (searchResults.length > 0) {
+              // Find best match: exact title and artist match preferred
+              let bestMatch = searchResults[0];
+              
+              for (const track of searchResults) {
+                const titleMatch = track.name.toLowerCase().includes(song.title.toLowerCase());
+                const artistMatch = track.artists.some(artist => 
+                  artist.name.toLowerCase().includes(song.artist.toLowerCase())
+                );
+                
+                if (titleMatch && artistMatch) {
+                  bestMatch = track;
+                  break;
+                } else if (track.popularity > bestMatch.popularity) {
+                  bestMatch = track;
+                }
+              }
+              
+              console.log(`Selected track: ${bestMatch.name} by ${bestMatch.artists[0]?.name}`);
+              trackIds.push(bestMatch.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to find track: ${song.artist} - ${song.title}`, error);
+          }
+        }
+
+        // Add tracks to playlist in batches
+        if (trackIds.length > 0) {
+          const trackUris = trackIds.map(id => `spotify:track:${id}`);
+          console.log(`Adding ${trackUris.length} tracks to service playlist`);
+          
+          for (let i = 0; i < trackUris.length; i += 100) {
+            const batch = trackUris.slice(i, i + 100);
+            const tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                uris: batch,
+              }),
+            });
+
+            if (!tracksResponse.ok) {
+              const errorText = await tracksResponse.text();
+              console.error('Failed to add tracks to service playlist:', tracksResponse.status, errorText);
+            }
+          }
+        }
+      }
+
+      return {
+        id: playlist.id,
+        external_urls: playlist.external_urls,
+      };
+    } catch (error) {
+      console.error('Error creating service playlist:', error);
+      throw error;
+    }
+  }
+
   getAuthUrl(state: string): string {
     const scopes = [
       'user-read-private',

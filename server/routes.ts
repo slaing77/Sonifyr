@@ -1743,6 +1743,65 @@ ${daily.horoscope}
     }
   });
 
+  // Create a Spotify playlist using Sonifyr's service account (for Quick Cosmic Experience)
+  app.post('/api/spotify/service-create-playlist', async (req, res) => {
+    try {
+      const { sessionId, playlistName } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      // Get the playlist data
+      const playlist = await storage.getPlaylist(sessionId);
+      if (!playlist) {
+        return res.status(404).json({ error: "Playlist not found" });
+      }
+
+      console.log('Creating service playlist:', {
+        sessionId,
+        playlistName: playlistName || playlist.name,
+        songsCount: playlist.songs.length
+      });
+
+      // Create playlist on Sonifyr's account
+      const spotifyPlaylist = await spotifyService.createServicePlaylist(
+        playlistName || playlist.name,
+        playlist.description,
+        playlist.songs
+      );
+
+      console.log('Service playlist created successfully:', {
+        playlistId: spotifyPlaylist.id,
+        playlistUrl: spotifyPlaylist.external_urls.spotify
+      });
+
+      res.json({
+        success: true,
+        playlistUrl: spotifyPlaylist.external_urls.spotify,
+        playlistId: spotifyPlaylist.id,
+        tracksAdded: playlist.songs.length,
+        totalSongs: playlist.songs.length,
+        message: "Playlist successfully created on Sonifyr's account!"
+      });
+      
+    } catch (error) {
+      console.error("Error creating service playlist:", error);
+      
+      if (error.message.includes('SPOTIFY_SERVICE_REFRESH_TOKEN not configured')) {
+        res.status(500).json({ 
+          error: "Service account not configured",
+          message: "Sonifyr's Spotify service account is not properly configured. Please try again later."
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to create playlist",
+          message: "There was an error creating your playlist. Please try again."
+        });
+      }
+    }
+  });
+
   // Create real Spotify playlist from AI-generated playlist
   app.post('/api/spotify/create-playlist', requireAuth, async (req: any, res) => {
     try {
