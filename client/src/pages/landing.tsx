@@ -43,6 +43,8 @@ export default function Landing() {
   
   // Email collection state for Quick path
   const [showEmailCollection, setShowEmailCollection] = useState(false);
+  const [quickEmail, setQuickEmail] = useState("");
+  const [quickNewsletterPreference, setQuickNewsletterPreference] = useState("playlist-only");
 
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
@@ -306,6 +308,8 @@ export default function Landing() {
                       placeholder="your.email@example.com"
                       data-testid="input-quick-email"
                       className="text-center text-lg py-3"
+                      value={quickEmail}
+                      onChange={(e) => setQuickEmail(e.target.value)}
                     />
                     <p className="text-sm text-gray-500 text-center">
                       We'll send your cosmic playlist here
@@ -316,7 +320,8 @@ export default function Landing() {
                   <div className="space-y-4 pt-4 border-t border-gray-200">
                     <Label className="text-base font-medium">Choose your cosmic journey:</Label>
                     <RadioGroup
-                      defaultValue="playlist-only"
+                      value={quickNewsletterPreference}
+                      onValueChange={(value: "newsletter" | "playlist-only") => setQuickNewsletterPreference(value)}
                       className="space-y-3"
                     >
                       <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
@@ -340,7 +345,21 @@ export default function Landing() {
                   {/* Action Buttons */}
                   <div className="flex flex-col gap-4 pt-6">
                     <Button 
-                      onClick={() => {/* TODO: Will implement in task 4 */}}
+                      onClick={() => {
+                        if (!quickEmail || !quickEmail.includes('@')) {
+                          toast({
+                            title: "Valid email required",
+                            description: "Please enter a valid email address to receive your playlist",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        generateQuickPlaylist.mutate({
+                          ...parsedBirthData,
+                          email: quickEmail,
+                          newsletterPreference: quickNewsletterPreference
+                        });
+                      }}
                       disabled={isGenerating}
                       className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 py-3"
                       data-testid="button-generate-quick-playlist"
