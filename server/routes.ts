@@ -1542,19 +1542,8 @@ ${daily.horoscope}
             location: birthData.birthLocation,
           }, 'guest', tokens.access_token, musicProfile);
           
-          // Handle email sending if requested
-          if (birthData.email && birthData.newsletterPreference === 'newsletter') {
-            try {
-              await storage.addNewsletterSubscriber(birthData.email, {
-                birthDate: birthData.birthDate,
-                birthTime: birthData.birthTime,
-                birthLocation: birthData.birthLocation,
-              });
-            } catch (error) {
-              console.error('Error adding newsletter subscriber:', error);
-              // Don't fail the playlist generation for newsletter errors
-            }
-          }
+          // Handle email sending if requested (will be handled in the OpenAI service)
+          // Newsletter signup is handled in the existing guest playlist route
           
           // Store the generated playlist data in localStorage for the results page
           const resultData = {
