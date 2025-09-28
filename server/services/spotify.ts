@@ -52,6 +52,8 @@ export class SpotifyService {
   private clientId: string;
   private clientSecret: string;
   private redirectUri: string;
+  private serviceAccountToken: string | null = null;
+  private serviceTokenExpiry: number = 0;
 
   constructor() {
     this.clientId = process.env.SPOTIFY_CLIENT_ID!;
@@ -60,6 +62,50 @@ export class SpotifyService {
     this.redirectUri = `https://${domain || 'localhost:5000'}/api/spotify/callback`;
     
     console.log("Spotify Service initialized with redirect URI:", this.redirectUri);
+    
+    // Initialize service account for planetary frequency analysis
+    this.initializeServiceAccount();
+  }
+
+  /**
+   * Initialize Sonifyr service account for universal audio analysis access
+   */
+  private async initializeServiceAccount(): Promise<void> {
+    try {
+      await this.refreshServiceAccountToken();
+      console.log("🎵 Sonifyr service account initialized for planetary frequency analysis");
+    } catch (error) {
+      console.error("Failed to initialize Sonifyr service account:", error);
+    }
+  }
+
+  /**
+   * Get or refresh service account token for audio analysis
+   */
+  private async refreshServiceAccountToken(): Promise<string> {
+    // Check if current token is still valid
+    if (this.serviceAccountToken && Date.now() < this.serviceTokenExpiry) {
+      return this.serviceAccountToken;
+    }
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get service account token');
+    }
+
+    const data = await response.json();
+    this.serviceAccountToken = data.access_token;
+    this.serviceTokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Refresh 1 min early
+    
+    return this.serviceAccountToken!;
   }
 
   getAuthUrl(state: string): string {
@@ -315,6 +361,71 @@ export class SpotifyService {
     const encodedQuery = encodeURIComponent(query);
     const response = await this.getSpotifyApi(accessToken, `/search?q=${encodedQuery}&type=track&limit=${limit}`);
     return response.tracks?.items || [];
+  }
+
+  /**
+   * Search tracks using Sonifyr service account - enables planetary frequency analysis for all users!
+   */
+  async searchTracksAsService(query: string, limit: number = 20): Promise<SpotifyTrack[]> {
+    const token = await this.refreshServiceAccountToken();
+    const encodedQuery = encodeURIComponent(query);
+    
+    const response = await fetch(`https://api.spotify.com/v1/search?q=${encodedQuery}&type=track&limit=${limit}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Service search failed: ${response.status} ${response.statusText}`);
+      throw new Error('Failed to search tracks with service account');
+    }
+
+    const data = await response.json();
+    return data.tracks?.items || [];
+  }
+
+  /**
+   * Get full audio analysis for any track using service account
+   * This is the KEY method that enables planetary frequency detection!
+   */
+  async getAudioAnalysis(trackId: string): Promise<any> {
+    const token = await this.refreshServiceAccountToken();
+    
+    const response = await fetch(`https://api.spotify.com/v1/audio-analysis/${trackId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Audio analysis failed for ${trackId}: ${response.status}`);
+      return null;
+    }
+
+    const analysisData = await response.json();
+    console.log(`🎵 Retrieved full audio analysis for track ${trackId} - ${analysisData.segments?.length || 0} segments`);
+    return analysisData;
+  }
+
+  /**
+   * Get audio features for any track using service account
+   */
+  async getAudioFeatures(trackId: string): Promise<any> {
+    const token = await this.refreshServiceAccountToken();
+    
+    const response = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Audio features failed for ${trackId}: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
   }
 
   /**
