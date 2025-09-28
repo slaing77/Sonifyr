@@ -151,6 +151,254 @@ export class HarmonicAnalysisService {
   }
 
   /**
+   * Analyze harmonic content from Spotify's detailed audio analysis 
+   * This uses full-track structural data instead of 30-second clips
+   */
+  async analyzeFromSpotifyAnalysis(
+    audioAnalysis: any,
+    trackData: {
+      id: string;
+      name: string;
+      artist: string;
+    }
+  ): Promise<SpotifyTrackAnalysis | null> {
+    const startTime = Date.now();
+
+    try {
+      console.log(`Creating harmonic analysis from Spotify audio analysis for ${trackData.name}`);
+      
+      const harmonicAnalysis = this.createHarmonicsFromAnalysis(audioAnalysis);
+      
+      return {
+        previewUrl: '', // No preview URL for audio analysis
+        trackId: trackData.id,
+        name: trackData.name,
+        artist: trackData.artist,
+        harmonicAnalysis,
+        processingTime: Date.now() - startTime
+      };
+
+    } catch (error) {
+      console.error(`Error creating analysis from audio analysis for ${trackData.name}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create harmonic data from Spotify's detailed audio analysis
+   * Uses segments with pitches, timbre, and confidence data across full track
+   */
+  private createHarmonicsFromAnalysis(audioAnalysis: any): HarmonicAnalysisResult {
+    const track = audioAnalysis.track || {};
+    const sections = audioAnalysis.sections || [];
+    const segments = audioAnalysis.segments || [];
+
+    // Extract overall track characteristics
+    const tempo = track.tempo || 120;
+    const key = track.key || 0; // 0-11 Spotify key notation
+    const mode = track.mode || 1; // 0=minor, 1=major
+    const loudness = track.loudness || -10; // dB
+    const timeSignature = track.time_signature || 4;
+
+    // Analyze segments to build harmonic profile
+    const pitchProfile = this.analyzePitchSegments(segments);
+    const timbreProfile = this.analyzeTimbreSegments(segments);
+    
+    // Calculate fundamental frequency from dominant pitch class and key
+    const keyFrequencies = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88]; // C4 to B4
+    const dominantPitchClass = this.findDominantPitchClass(pitchProfile);
+    const fundamentalHz = keyFrequencies[key] * Math.pow(2, Math.floor(Math.log2(500 / keyFrequencies[key]))); // Adjust octave to ~500Hz range
+
+    // Build harmonics from pitch and timbre analysis
+    const harmonics: AudioHarmonic[] = this.buildHarmonicsFromSegments(fundamentalHz, pitchProfile, timbreProfile);
+
+    // Calculate spectral features from timbre data
+    const spectralFeatures = this.calculateSpectralFeatures(segments, timbreProfile);
+
+    return {
+      fundamentalHz,
+      harmonics,
+      dominantHarmonics: harmonics
+        .sort((a, b) => b.amplitude - a.amplitude)
+        .slice(0, 5)
+        .map(h => h.harmonic),
+      spectralCentroid: spectralFeatures.centroid,
+      spectralRolloff: spectralFeatures.rolloff,
+      mfcc: spectralFeatures.mfcc,
+      chroma: pitchProfile, // Use pitch profile as chroma
+      rms: Math.pow(10, loudness / 20), // Convert dB to linear scale
+      zcr: this.estimateZeroCrossingRate(timbreProfile),
+      musicalKey: this.getKeyName(key, mode),
+      tempo,
+      analysisType: 'full_audio',
+      confidence: this.calculateAnalysisConfidence(segments)
+    };
+  }
+
+  /**
+   * Analyze pitch content across all segments
+   */
+  private analyzePitchSegments(segments: any[]): number[] {
+    const pitchProfile = new Array(12).fill(0);
+    let totalDuration = 0;
+
+    for (const segment of segments) {
+      const duration = segment.duration || 0;
+      const pitches = segment.pitches || [];
+      const confidence = segment.confidence || 0.5;
+
+      // Weight by duration and confidence
+      const weight = duration * confidence;
+      totalDuration += weight;
+
+      for (let i = 0; i < 12 && i < pitches.length; i++) {
+        pitchProfile[i] += pitches[i] * weight;
+      }
+    }
+
+    // Normalize by total weighted duration
+    if (totalDuration > 0) {
+      for (let i = 0; i < 12; i++) {
+        pitchProfile[i] /= totalDuration;
+      }
+    }
+
+    return pitchProfile;
+  }
+
+  /**
+   * Analyze timbre characteristics across segments
+   */
+  private analyzeTimbreSegments(segments: any[]): number[] {
+    const timbreProfile = new Array(12).fill(0);
+    let totalDuration = 0;
+
+    for (const segment of segments) {
+      const duration = segment.duration || 0;
+      const timbre = segment.timbre || [];
+      const confidence = segment.confidence || 0.5;
+
+      const weight = duration * confidence;
+      totalDuration += weight;
+
+      for (let i = 0; i < 12 && i < timbre.length; i++) {
+        timbreProfile[i] += timbre[i] * weight;
+      }
+    }
+
+    if (totalDuration > 0) {
+      for (let i = 0; i < 12; i++) {
+        timbreProfile[i] /= totalDuration;
+      }
+    }
+
+    return timbreProfile;
+  }
+
+  /**
+   * Find the most prominent pitch class
+   */
+  private findDominantPitchClass(pitchProfile: number[]): number {
+    let maxStrength = 0;
+    let dominantPitch = 0;
+
+    for (let i = 0; i < pitchProfile.length; i++) {
+      if (pitchProfile[i] > maxStrength) {
+        maxStrength = pitchProfile[i];
+        dominantPitch = i;
+      }
+    }
+
+    return dominantPitch;
+  }
+
+  /**
+   * Build harmonics from analyzed pitch and timbre data
+   */
+  private buildHarmonicsFromSegments(fundamentalHz: number, pitchProfile: number[], timbreProfile: number[]): AudioHarmonic[] {
+    const harmonics: AudioHarmonic[] = [];
+
+    // Fundamental
+    harmonics.push({
+      harmonic: 1,
+      frequency: fundamentalHz,
+      amplitude: 1.0,
+      ratio: 1.0,
+      ratioString: '1:1'
+    });
+
+    // Build harmonics 2-8 based on pitch strength and timbre
+    for (let h = 2; h <= 8; h++) {
+      const pitchClassIndex = ((Math.round(Math.log2(h) * 12)) % 12); // Map harmonic to pitch class
+      const pitchStrength = pitchProfile[pitchClassIndex] || 0;
+      const timbreInfluence = Math.abs(timbreProfile[h - 2] || 0) / 100; // Normalize timbre values
+
+      // Combine pitch and timbre data for amplitude
+      const amplitude = Math.min(0.8, (pitchStrength * 0.7) + (timbreInfluence * 0.3));
+
+      if (amplitude > 0.05) { // Only include significant harmonics
+        harmonics.push({
+          harmonic: h,
+          frequency: fundamentalHz * h,
+          amplitude,
+          ratio: h,
+          ratioString: `${h}:1`
+        });
+      }
+    }
+
+    return harmonics;
+  }
+
+  /**
+   * Calculate spectral features from segment data
+   */
+  private calculateSpectralFeatures(segments: any[], timbreProfile: number[]): {
+    centroid: number;
+    rolloff: number;
+    mfcc: number[];
+  } {
+    // Use timbre data to estimate spectral features
+    const centroid = timbreProfile[0] * 50 + 1000; // Rough mapping
+    const rolloff = timbreProfile[1] * 100 + 3000;
+    
+    // Generate MFCCs from timbre (first 12 timbre coefficients are MFCC-like)
+    const mfcc = timbreProfile.slice(0, 13);
+
+    return { centroid, rolloff, mfcc };
+  }
+
+  /**
+   * Estimate zero crossing rate from timbre
+   */
+  private estimateZeroCrossingRate(timbreProfile: number[]): number {
+    // Use spectral rolloff-related timbre features
+    const rolloffFeature = timbreProfile[1] || 0;
+    return Math.max(0.01, Math.min(0.3, Math.abs(rolloffFeature) / 1000));
+  }
+
+  /**
+   * Calculate confidence based on segment data quality
+   */
+  private calculateAnalysisConfidence(segments: any[]): number {
+    if (segments.length === 0) return 0.3;
+
+    const avgConfidence = segments.reduce((sum, seg) => sum + (seg.confidence || 0), 0) / segments.length;
+    const segmentDensity = Math.min(1.0, segments.length / 100); // More segments = more detailed
+
+    return Math.min(0.95, (avgConfidence * 0.7) + (segmentDensity * 0.3));
+  }
+
+  /**
+   * Convert Spotify key/mode to readable name
+   */
+  private getKeyName(key: number, mode: number): string {
+    const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const modeName = mode === 1 ? 'major' : 'minor';
+    return `${keys[key % 12]} ${modeName}`;
+  }
+
+  /**
    * Generate synthetic harmonics from Spotify audio features
    */
   private createSyntheticHarmonics(audioFeatures: any): HarmonicAnalysisResult {
