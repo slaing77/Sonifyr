@@ -1450,8 +1450,8 @@ ${daily.horoscope}
         return res.status(400).json({ error: "Invalid birth data state" });
       }
       
-      // Validate required fields
-      if (!birthData.birthDate || !birthData.birthTime || !birthData.birthLocation || !birthData.email) {
+      // Validate required fields (email not required for personalized path - collected later)
+      if (!birthData.birthDate || !birthData.birthTime || !birthData.birthLocation) {
         return res.status(400).json({ error: "Missing required birth data fields" });
       }
       
@@ -1461,7 +1461,7 @@ ${daily.horoscope}
       
       console.log("\n=== PERSONALIZED SPOTIFY AUTH REQUEST ===");
       console.log("Birth data:", {
-        email: birthData.email,
+        email: birthData.email || "not provided yet",
         birthDate: birthData.birthDate,
         birthTime: birthData.birthTime,
         birthLocation: birthData.birthLocation
