@@ -535,7 +535,7 @@ Each song is specifically chosen to align with the daily planetary energies you'
   // Generate guest playlist without authentication (FREE VERSION ENDPOINT)
   app.post("/api/generate-guest-playlist", async (req, res) => {
     try {
-      const { email, birthDate, birthTime, birthLocation } = req.body;
+      const { email, newsletterPreference, birthDate, birthTime, birthLocation } = req.body;
       
       if (!email || !birthDate || !birthTime || !birthLocation) {
         return res.status(400).json({ error: "Email and birth information required" });
@@ -558,6 +558,17 @@ Each song is specifically chosen to align with the daily planetary energies you'
 
       // Update rate limiting timestamp
       await storage.touchGuestPlaylistGenerated(email);
+
+      // Send welcome email with playlist report
+      try {
+        const { sendEmail, createWelcomeEmail } = await import('./services/email');
+        const emailParams = createWelcomeEmail(email, playlistData, newsletterPreference || 'playlist-only');
+        await sendEmail(emailParams);
+        console.log(`Welcome email sent to ${email} with preference: ${newsletterPreference}`);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the playlist generation if email fails
+      }
 
       // Return the playlist data directly (no database storage for guests)
       res.json(playlistData);
