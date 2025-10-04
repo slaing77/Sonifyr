@@ -215,7 +215,6 @@ export default function Landing() {
                       </div>
                       <Button 
                         onClick={() => {
-                          alert('Quick Cosmic button clicked!');
                           setShowEmailCollection(true);
                         }}
                         disabled={isGenerating}
@@ -258,7 +257,6 @@ export default function Landing() {
                       </div>
                       <Button 
                         onClick={() => {
-                          alert('Personalized button clicked!');
                           generatePersonalizedPlaylist.mutate(parsedBirthData);
                         }}
                         disabled={isGenerating}

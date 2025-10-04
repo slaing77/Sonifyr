@@ -355,24 +355,30 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
           });
         }
         
-        // Analyze each track for planetary resonances
+        // Analyze each track for planetary resonances with timeout
         const harmonicAnalyses = [];
         for (const song of playlistData.songs) {
           if (song.spotifyId) {
             try {
-              const trackCorrelation = await harmonicCorrelationEngine.analyzeTrackCorrelation(
-                chartData,
-                {
-                  id: song.spotifyId,
-                  name: song.title,
-                  artist: song.artist,
-                  previewUrl: song.previewUrl
-                },
-                {
-                  spotifyService: spotifyService,
-                  accessToken: accessToken
-                }
-              );
+              // Add 5-second timeout to prevent infinite hanging
+              const trackCorrelation = await Promise.race([
+                harmonicCorrelationEngine.analyzeTrackCorrelation(
+                  chartData,
+                  {
+                    id: song.spotifyId,
+                    name: song.title,
+                    artist: song.artist,
+                    previewUrl: song.previewUrl
+                  },
+                  {
+                    spotifyService: spotifyService,
+                    accessToken: accessToken
+                  }
+                ),
+                new Promise<null>((_, reject) => 
+                  setTimeout(() => reject(new Error('Audio analysis timeout')), 5000)
+                )
+              ]);
               
               if (trackCorrelation) {
                 harmonicAnalyses.push(trackCorrelation);
@@ -388,7 +394,8 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
                 console.log(`🎵 ${song.title}: ${trackCorrelation.planetaryResonance?.dominantPlanet || 'No dominant planet'} (${Math.round((trackCorrelation.planetaryResonance?.cosmicAlignment || 0) * 100)}% alignment)`);
               }
             } catch (error) {
-              console.warn(`Warning: Failed to analyze ${song.title}:`, error);
+              console.warn(`⚠️ Skipping audio analysis for ${song.title}:`, error instanceof Error ? error.message : 'Unknown error');
+              // Continue without audio analysis for this track
             }
           }
         }
