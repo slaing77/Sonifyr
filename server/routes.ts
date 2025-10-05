@@ -1607,12 +1607,70 @@ ${daily.horoscope}
             });
           }
           
-          // Redirect to playlist results page (use absolute URL for Spotify callback)
+          // Send HTML page with client-side redirect for better mobile experience
           const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
           const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
           const redirectUrl = `${baseUrl}/playlist-result?personalized=true`;
           console.log('🔄 Redirecting to:', redirectUrl);
-          return res.redirect(redirectUrl);
+          
+          return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Generating Your Cosmic Playlist...</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  margin: 0;
+                  padding: 0;
+                  font-family: system-ui, -apple-system, sans-serif;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 100vh;
+                  color: white;
+                }
+                .container {
+                  text-align: center;
+                  padding: 2rem;
+                }
+                .spinner {
+                  width: 60px;
+                  height: 60px;
+                  border: 4px solid rgba(255, 255, 255, 0.3);
+                  border-top-color: white;
+                  border-radius: 50%;
+                  animation: spin 1s linear infinite;
+                  margin: 0 auto 1.5rem;
+                }
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+                h1 {
+                  font-size: 1.5rem;
+                  margin: 0 0 0.5rem;
+                }
+                p {
+                  font-size: 1rem;
+                  opacity: 0.9;
+                  margin: 0;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="spinner"></div>
+                <h1>✨ Consulting the stars...</h1>
+                <p>Generating your personalized cosmic playlist</p>
+              </div>
+              <script>
+                // Redirect immediately
+                window.location.href = '${redirectUrl}';
+              </script>
+            </body>
+            </html>
+          `);
         } catch (error) {
           console.error("Error generating personalized playlist:", error);
           return res.redirect('/?spotify=error&reason=playlist_generation_failed');
