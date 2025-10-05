@@ -340,107 +340,23 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
       }
     }
     
-    // PLANETARY FREQUENCY ANALYSIS - NEW HARMONIC CORRELATION SYSTEM
-    if (playlistData.songs && Array.isArray(playlistData.songs)) {
+    // Add astrological signs for personalization (no audio analysis needed)
+    if (playlistData && birthInfo) {
       try {
-        console.log('🌟 Starting planetary frequency analysis...');
+        const chartData = await this.astrologyService.calculateBigThreeAccurate({
+          date: birthInfo.date,
+          time: birthInfo.time,
+          location: birthInfo.location
+        });
         
-        // Get user's astrological chart data
-        let chartData: any = {};
-        if (birthInfo) {
-          chartData = await this.astrologyService.calculateBigThreeAccurate({
-            date: birthInfo.date,
-            time: birthInfo.time,
-            location: birthInfo.location
-          });
-        }
-        
-        // Analyze each track for astrological resonances (chart-based, no audio analysis)
-        const harmonicAnalyses = [];
-        for (const song of playlistData.songs) {
-          if (song.spotifyId) {
-            try {
-              const trackCorrelation = await harmonicCorrelationEngine.analyzeTrackCorrelation(
-                chartData,
-                {
-                  id: song.spotifyId,
-                  name: song.title,
-                  artist: song.artist,
-                  previewUrl: song.previewUrl
-                },
-                {
-                  spotifyService: spotifyService,
-                  accessToken: accessToken
-                }
-              );
-              
-              if (trackCorrelation) {
-                harmonicAnalyses.push(trackCorrelation);
-                
-                // Enhance song with astrological resonance data
-                song.planetaryResonance = {
-                  dominantPlanet: trackCorrelation.planetaryResonance?.dominantPlanet,
-                  cosmicAlignment: trackCorrelation.planetaryResonance?.cosmicAlignment || 0,
-                  harmonicScore: trackCorrelation.overallScore,
-                  insights: trackCorrelation.planetaryResonance?.insights || []
-                };
-                
-                console.log(`🌟 ${song.title}: Astrological resonance score ${trackCorrelation.overallScore.toFixed(2)}`);
-              }
-            } catch (error) {
-              console.warn(`⚠️ Skipping correlation for ${song.title}:`, error instanceof Error ? error.message : 'Unknown error');
-              // Continue without correlation for this track
-            }
-          }
-        }
-        
-        // Generate dynamic playlist name based on planetary frequencies
-        if (harmonicAnalyses.length > 0) {
-          const dominantPlanets = harmonicAnalyses
-            .filter(a => a.planetaryResonance?.dominantPlanet)
-            .map(a => a.planetaryResonance!.dominantPlanet!)
-            .reduce((acc, planet) => {
-              acc[planet] = (acc[planet] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
-          
-          const mostFrequentPlanet = Object.entries(dominantPlanets)
-            .sort((a, b) => b[1] - a[1])[0]?.[0];
-          
-          if (mostFrequentPlanet) {
-            // Replace generic name with planetary frequency-based name
-            const originalName = playlistData.name;
-            playlistData.name = `${mostFrequentPlanet} Frequencies Detected: Your Horoscope Your Soundtrack`;
-            
-            console.log(`🌟 Updated playlist name from "${originalName}" to "${playlistData.name}"`);
-            
-            // Enhance description with planetary frequency insights
-            const avgAlignment = harmonicAnalyses.reduce((sum, a) => sum + (a.planetaryResonance?.cosmicAlignment || 0), 0) / harmonicAnalyses.length;
-            const alignmentPercent = Math.round(avgAlignment * 100);
-            
-            playlistData.description = `${playlistData.description} Features strong ${mostFrequentPlanet} resonance at specific planetary frequencies with ${alignmentPercent}% cosmic alignment.`;
-          }
-        } else {
-          console.log('🌙 No planetary resonances detected - using astrological divination');
-        }
-    
-        // ADD ASTROLOGICAL SIGNS TO PLAYLIST DATA FOR SPOTIFY PERSONALIZATION
-        if (playlistData && birthInfo && chartData.bigThree) {
-          try {
-            // Add sun sign and moon sign for Spotify description personalization
-            playlistData.sunSign = chartData.bigThree.sunSign;
-            playlistData.moonSign = chartData.bigThree.moonSign;
-            playlistData.risingSign = chartData.bigThree.risingSign;
-            console.log(`📋 Added astrological signs to playlist data: ${playlistData.sunSign} Sun, ${playlistData.moonSign} Moon`);
-          } catch (error) {
-            console.warn('Warning: Failed to add astrological signs to playlist data:', error);
-          }
-        } else {
-          console.log('📋 No astrological signs available for playlist personalization');
+        if (chartData) {
+          playlistData.sunSign = chartData.sunSign;
+          playlistData.moonSign = chartData.moonSign;
+          playlistData.risingSign = chartData.risingSign;
+          console.log(`✨ Cosmic profile: ${playlistData.sunSign} Sun, ${playlistData.moonSign} Moon, ${playlistData.risingSign} Rising`);
         }
       } catch (error) {
-        console.error('Error in planetary frequency analysis:', error);
-        // Continue without planetary analysis
+        console.warn('Warning: Failed to add astrological signs:', error);
       }
     }
     
