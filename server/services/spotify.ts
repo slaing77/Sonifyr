@@ -375,48 +375,20 @@ export class SpotifyService {
       index === self.findIndex(t => t.id === track.id)
     );
 
-    // Get audio features for analysis (if we have tracks)
-    if (uniqueTracks.length > 0) {
-      const trackIds = uniqueTracks.slice(0, 100).map(track => track.id).filter(id => id).join(',');
-      if (trackIds) {
-        try {
-          const audioFeaturesResponse = await this.getSpotifyApi(accessToken, `/audio-features?ids=${trackIds}`);
-          const audioFeatures = audioFeaturesResponse?.audio_features || [];
-
-          // Map audio features to tracks
-          uniqueTracks.forEach((track, index) => {
-            if (audioFeatures[index]) {
-              track.audio_features = audioFeatures[index];
-            }
-          });
-        } catch (error) {
-          console.warn("Audio features access restricted, using genre-based estimates:", error);
-        }
-      }
-    }
+    // Note: Audio features API is restricted as of Nov 2024
+    // Skip audio feature analysis and use genre-based estimates instead
 
     // Extract genres from artists
     const genres = topArtists.flatMap((artist: any) => artist.genres || []);
     const uniqueGenres = Array.from(new Set(genres)) as string[];
     const preferredGenres = uniqueGenres.slice(0, 10);
 
-    // Calculate average music characteristics
-    const tracksWithFeatures = uniqueTracks.filter(track => track.audio_features);
-    let averageEnergy, averageValence, averageTempo;
-    
-    if (tracksWithFeatures.length > 0) {
-      // Use actual audio features if available
-      averageEnergy = tracksWithFeatures.reduce((sum, track) => sum + (track.audio_features?.energy || 0), 0) / tracksWithFeatures.length;
-      averageValence = tracksWithFeatures.reduce((sum, track) => sum + (track.audio_features?.valence || 0), 0) / tracksWithFeatures.length;
-      averageTempo = tracksWithFeatures.reduce((sum, track) => sum + (track.audio_features?.tempo || 0), 0) / tracksWithFeatures.length;
-    } else {
-      // Use genre-based estimates if audio features unavailable
-      const estimates = this.getGenreBasedEstimates(preferredGenres as string[]);
-      averageEnergy = estimates.energy;
-      averageValence = estimates.valence;
-      averageTempo = estimates.tempo;
-      console.log("Using genre-based estimates:", estimates);
-    }
+    // Calculate average music characteristics using genre-based estimates
+    const estimates = this.getGenreBasedEstimates(preferredGenres as string[]);
+    const averageEnergy = estimates.energy;
+    const averageValence = estimates.valence;
+    const averageTempo = estimates.tempo;
+    console.log("Using genre-based estimates:", estimates);
 
     const profile = {
       recentlyPlayed,
