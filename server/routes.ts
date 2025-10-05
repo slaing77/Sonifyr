@@ -3119,84 +3119,8 @@ ${daily.horoscope}
     }
   });
 
-  // Handle playlist sharing with dynamic meta tags for social media crawlers
-  app.get('/playlist-result', async (req, res) => {
-    try {
-      // Get the base HTML
-      const fs = await import('fs/promises');
-      const path = await import('path');
-      
-      let indexPath;
-      if (app.get("env") === "development") {
-        // In development, we need to get the HTML from Vite
-        indexPath = path.resolve(import.meta.dirname, '../client/index.html');
-      } else {
-        // In production, get from dist
-        indexPath = path.resolve(import.meta.dirname, 'public/index.html');
-      }
-      
-      let html = '';
-      try {
-        html = await fs.readFile(indexPath, 'utf-8');
-      } catch (err) {
-        // Fallback HTML if file not found
-        html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonifyr - Cosmic Music Curator</title>
-</head>
-<body>
-    <div id="root"></div>
-</body>
-</html>`;
-      }
-      
-      // Extract playlist data from query params or use defaults
-      const playlistName = req.query.name as string || 'Cosmic Playlist: Your Horoscope Your Soundtrack';
-      const description = req.query.description as string || 'Discover your personalized cosmic playlist curated by AI and astrology. Songs chosen based on planetary influences and astrological insights.';
-      const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-      const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-      const imageUrl = `${baseUrl}/generated_images/Sonifyr_star_logo_design_85955193.png`;
-      const playlistUrl = `${baseUrl}/playlist-result`;
-      
-      // Generate dynamic meta tags
-      const metaTags = `
-    <meta property="og:title" content="${playlistName} - Sonifyr">
-    <meta property="og:description" content="${description}">
-    <meta property="og:image" content="${imageUrl}">
-    <meta property="og:url" content="${playlistUrl}">
-    <meta property="og:type" content="music.playlist">
-    <meta property="og:site_name" content="Sonifyr">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="${playlistName} - Sonifyr">
-    <meta name="twitter:description" content="${description}">
-    <meta name="twitter:image" content="${imageUrl}">
-    <meta name="description" content="${description}">`;
-      
-      // Update page title
-      const updatedTitle = `${playlistName} - Sonifyr`;
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${updatedTitle}</title>`);
-      
-      // Inject meta tags into the head section
-      html = html.replace(/<\/head>/i, `${metaTags}\n</head>`);
-      
-      // Set headers for social media crawlers
-      res.set({
-        'Content-Type': 'text/html',
-        'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
-      });
-      
-      console.log(`🌟 Serving playlist-result with dynamic meta tags: "${playlistName}"`);
-      res.send(html);
-      
-    } catch (error) {
-      console.error('Error serving playlist result with meta tags:', error);
-      // Fallback to normal index.html
-      res.redirect('/');
-    }
-  });
+  // Removed server-side /playlist-result route - let React handle client-side routing
+  // Meta tags are now handled by the React component itself
 
   const httpServer = createServer(app);
   return httpServer;
