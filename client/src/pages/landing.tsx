@@ -14,6 +14,7 @@ import RotatingHeroText from "@/components/rotating-hero-text";
 import AnimatedPage from "@/components/animated-page";
 
 const birthDataSchema = z.object({
+  email: z.string().email("Please enter a valid email").optional(),
   birthInfo: z.string().min(1, "Birth information is required").refine(
     (value) => {
       const pattern = /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s+(am|pm)\s+.+,.+$/i;
@@ -36,6 +37,7 @@ export default function Landing() {
   const form = useForm<BirthData>({
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
+      email: "",
       birthInfo: "",
     },
   });
@@ -126,6 +128,16 @@ export default function Landing() {
   });
 
   const onSubmit = (data: BirthData) => {
+    // Validate email for quick path
+    if (selectedPath === 'quick' && !data.email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const birthInfoParts = data.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
     
     if (!birthInfoParts) {
@@ -148,6 +160,7 @@ export default function Landing() {
     }
     
     const birthData = {
+      email: data.email || '',
       birthDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
       birthTime: `${hour24.toString().padStart(2, '0')}:${minute}`,
       birthLocation: location.trim()
@@ -321,6 +334,26 @@ export default function Landing() {
                         <span className="font-semibold text-green-800">
                           ✓ Connected to Spotify as {(spotifyStatus as any)?.user?.display_name || 'User'}
                         </span>
+                      </div>
+                    )}
+                    
+                    {selectedPath === 'quick' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-lg font-semibold">📧 Your Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          data-testid="input-email"
+                          {...form.register("email")}
+                          className="text-center text-lg py-6"
+                        />
+                        <p className="text-sm text-gray-500 text-center">
+                          We'll use this to track your weekly playlist limit
+                        </p>
+                        {form.formState.errors.email && (
+                          <p className="text-sm text-red-500 text-center">{form.formState.errors.email.message}</p>
+                        )}
                       </div>
                     )}
                     
