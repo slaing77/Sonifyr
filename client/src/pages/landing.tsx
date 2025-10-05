@@ -545,11 +545,11 @@ export default function Landing() {
               <Crown className="h-8 w-8 text-amber-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-amber-800">Want More Cosmic Experiences?</h3>
               <p className="text-amber-700 mb-4">
-                Unlock unlimited playlists, detailed birth chart readings, AI chat guidance, mood tracking, and more with our premium service.
+                Join the wait list to unlock more cosmic secrets
               </p>
               <Link href="/upgrade">
                 <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100" data-testid="button-learn-premium">
-                  Learn About Premium
+                  Join Wait List
                 </Button>
               </Link>
             </CardContent>

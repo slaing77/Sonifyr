@@ -66,7 +66,7 @@ export default function ShareButton({ type, sessionId, variant = 'outline', size
       if (error.message.includes('429')) {
         toast({
           title: "Weekly limit reached",
-          description: "You can only share one playlist per week. Try again next week!",
+          description: "We're keeping the cosmos sustainable! Our sharing services have usage limits to ensure quality for everyone. Thank you for your patience! ✨",
           variant: "destructive",
         });
         return;

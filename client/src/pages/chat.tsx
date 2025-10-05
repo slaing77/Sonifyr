@@ -174,7 +174,7 @@ export default function ChatPage() {
       if (error.message.includes("429:") || error.message.includes("Weekly transit details limit reached")) {
         toast({
           title: "Weekly Limit Reached",
-          description: "You can only get transit details once per week. Your current transit details are still active.",
+          description: "We're keeping the cosmos sustainable! Our astrological services have usage limits to ensure quality for everyone. Your current transit details are still active.",
           variant: "destructive",
         });
         return;
