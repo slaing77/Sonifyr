@@ -470,14 +470,14 @@ export default function Landing() {
                           Come back next week for a new one, or upgrade to Premium for unlimited access!
                         </p>
                       </div>
-                      <Link href="/upgrade">
+                      <Link href="/waitlist">
                         <Button 
                           size="lg" 
                           className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full md:w-auto px-8"
                           data-testid="button-upgrade-from-limit"
                         >
                           <Crown className="w-5 h-5 mr-2" />
-                          Upgrade for Unlimited Playlists
+                          Join Wait List
                         </Button>
                       </Link>
                     </div>
@@ -547,7 +547,7 @@ export default function Landing() {
               <p className="text-amber-700 mb-4">
                 Join the wait list to unlock more cosmic secrets
               </p>
-              <Link href="/upgrade">
+              <Link href="/waitlist">
                 <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100" data-testid="button-learn-premium">
                   Join Wait List
                 </Button>

@@ -9,6 +9,7 @@ import ChatPage from "@/pages/chat";
 import Landing from "@/pages/landing";
 import PlaylistResult from "@/pages/playlist-result";
 import UpgradePage from "@/pages/upgrade";
+import WaitlistPage from "@/pages/waitlist";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import ProfileSetupPage from "@/pages/profile-setup";
@@ -53,6 +54,9 @@ function Router() {
       <Route path="/upgrade">
         <UpgradePage />
       </Route>
+      <Route path="/waitlist">
+        <WaitlistPage />
+      </Route>
       
       {/* User-dependent routes */}
       {user ? (
@@ -90,6 +94,9 @@ function Router() {
           </Route>
           <Route path="/upgrade">
             <UpgradePage />
+          </Route>
+          <Route path="/waitlist">
+            <WaitlistPage />
           </Route>
         </>
       )}

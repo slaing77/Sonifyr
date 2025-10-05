@@ -425,14 +425,14 @@ export default function PlaylistResult() {
                 </div>
               </div>
               <div className="space-y-3">
-                <Link href="/upgrade">
+                <Link href="/waitlist">
                   <Button 
                     size="lg" 
                     className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full md:w-auto px-8"
                     data-testid="button-upgrade-premium"
                   >
                     <Crown className="w-5 h-5 mr-2" />
-                    Upgrade to Premium
+                    Join Wait List
                   </Button>
                 </Link>
                 <p className="text-sm text-amber-600">
