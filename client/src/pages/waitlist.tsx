@@ -2,10 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Star, Music } from "lucide-react";
 import { Link } from "wouter";
+import AnimatedPage from "@/components/animated-page";
 
 export default function Waitlist() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
+    <AnimatedPage>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -99,6 +101,7 @@ export default function Waitlist() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </AnimatedPage>
   );
 }

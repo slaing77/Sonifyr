@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import RotatingHeroText from "@/components/rotating-hero-text";
+import AnimatedPage from "@/components/animated-page";
 
 const birthDataSchema = z.object({
   birthInfo: z.string().min(1, "Birth information is required").refine(
@@ -162,7 +163,8 @@ export default function Landing() {
   const isSpotifyConnected = (spotifyStatus as any)?.connected;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <AnimatedPage>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -438,5 +440,6 @@ export default function Landing() {
         </div>
       </div>
     </div>
+    </AnimatedPage>
   );
 }

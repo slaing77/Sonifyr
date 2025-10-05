@@ -6,6 +6,7 @@ import { Link, useLocation } from "wouter";
 import { SpotifyAuthDialog } from "@/components/spotify-auth-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { PlaylistData, Song } from "@shared/schema";
+import AnimatedPage from "@/components/animated-page";
 
 export default function PlaylistResult() {
   const [, setLocation] = useLocation();
@@ -270,7 +271,8 @@ export default function PlaylistResult() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <AnimatedPage>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -467,6 +469,7 @@ export default function PlaylistResult() {
         onOpenChange={setShowSpotifyDialog}
         onAuthSuccess={handleSpotifyAuthSuccess}
       />
-    </div>
+      </div>
+    </AnimatedPage>
   );
 }

@@ -35,79 +35,79 @@ function Router() {
   return (
     <AnimatePresence mode="wait">
       <Switch key={location}>
-      {/* Always accessible routes first */}
-      <Route path="/login">
-        <LoginPage />
-      </Route>
-      <Route path="/signup">
-        <SignupPage />
-      </Route>
-      <Route path="/forgot-password">
-        <ForgotPasswordPage />
-      </Route>
-      <Route path="/reset-password">
-        <ResetPasswordPage />
-      </Route>
-      <Route path="/profile-setup">
-        <ProfileSetupPage />
-      </Route>
-      <Route path="/playlist-result">
-        <PlaylistResult />
-      </Route>
-      <Route path="/upgrade">
-        <UpgradePage />
-      </Route>
-      <Route path="/waitlist">
-        <WaitlistPage />
-      </Route>
-      
-      {/* User-dependent routes */}
-      {user ? (
-        <>
-          {/* Check if user needs to complete profile */}
-          {!user?.birthDate || !user?.birthTime || !user?.birthLocation ? (
-            <Route path="/">
-              <ProfileSetupPage />
-            </Route>
-          ) : (
-            <>
+        {/* Always accessible routes first */}
+        <Route path="/login">
+          <LoginPage />
+        </Route>
+        <Route path="/signup">
+          <SignupPage />
+        </Route>
+        <Route path="/forgot-password">
+          <ForgotPasswordPage />
+        </Route>
+        <Route path="/reset-password">
+          <ResetPasswordPage />
+        </Route>
+        <Route path="/profile-setup">
+          <ProfileSetupPage />
+        </Route>
+        <Route path="/playlist-result">
+          <PlaylistResult />
+        </Route>
+        <Route path="/upgrade">
+          <UpgradePage />
+        </Route>
+        <Route path="/waitlist">
+          <WaitlistPage />
+        </Route>
+        
+        {/* User-dependent routes */}
+        {user ? (
+          <>
+            {/* Check if user needs to complete profile */}
+            {!user?.birthDate || !user?.birthTime || !user?.birthLocation ? (
               <Route path="/">
-                <ChatPage />
+                <ProfileSetupPage />
               </Route>
-              <Route path="/feedback-analytics">
-                <FeedbackAnalytics />
-              </Route>
-              <Route path="/mood-analysis">
-                <MoodAnalysisPage />
-              </Route>
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Guest routes */}
-          <Route path="/">
-            <Landing />
-          </Route>
-          <Route path="/chat">
-            <LoginPage />
-          </Route>
-          <Route path="/playlist-result">
-            <PlaylistResult />
-          </Route>
-          <Route path="/upgrade">
-            <UpgradePage />
-          </Route>
-          <Route path="/waitlist">
-            <WaitlistPage />
-          </Route>
-        </>
-      )}
-      
-      {/* Catch all - must be last */}
-      <Route>
-        <NotFound />
-      </Route>
+            ) : (
+              <>
+                <Route path="/">
+                  <ChatPage />
+                </Route>
+                <Route path="/feedback-analytics">
+                  <FeedbackAnalytics />
+                </Route>
+                <Route path="/mood-analysis">
+                  <MoodAnalysisPage />
+                </Route>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Guest routes */}
+            <Route path="/">
+              <Landing />
+            </Route>
+            <Route path="/chat">
+              <LoginPage />
+            </Route>
+            <Route path="/playlist-result">
+              <PlaylistResult />
+            </Route>
+            <Route path="/upgrade">
+              <UpgradePage />
+            </Route>
+            <Route path="/waitlist">
+              <WaitlistPage />
+            </Route>
+          </>
+        )}
+        
+        {/* Catch all - must be last */}
+        <Route>
+          <NotFound />
+        </Route>
       </Switch>
     </AnimatePresence>
   );
