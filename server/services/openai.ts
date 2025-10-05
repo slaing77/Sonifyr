@@ -243,9 +243,32 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
       return date.toISOString().split('T')[0];
     };
 
+    // Get actual planetary transits for accurate daily song selection
+    let transitContext = '';
+    try {
+      const transits = await this.astrologyService.generateWeeklyTransitsAccurate(birthInfo);
+      transitContext = `
+
+**Current Planetary Transits for This Week:**
+- Sun Sign: ${transits.sunSign}
+- Moon Sign: ${transits.moonSign}
+- Rising Sign: ${transits.rising}
+- Major Transits: ${transits.majorTransits.join(', ')}
+- Weekly Theme: ${transits.weeklyTheme}
+- Energy Level: ${transits.energyLevel}
+- Favorable Days: ${transits.favorableDays.join(', ')}
+- Challenging Days: ${transits.challengingDays.join(', ')}
+
+Use these actual transits to select appropriate songs for each day. Match the song energy to the daily planetary influences.`;
+      console.log('Retrieved weekly transits for playlist generation:', transits.weeklyTheme);
+    } catch (error) {
+      console.error('Error getting weekly transits:', error);
+      // Continue without transit data
+    }
+
     const prompt = `Create a personalized 7-song weekly playlist for someone born on ${birthInfo.date} at ${birthInfo.time} in ${birthInfo.location}.
 
-    Base the selection on current planetary transits and their astrological significance for the week starting ${formatDate(weekStart)} through ${formatDate(weekEnd)}.${musicContext}
+    Base the selection on current planetary transits and their astrological significance for the week starting ${formatDate(weekStart)} through ${formatDate(weekEnd)}.${transitContext}${musicContext}
 
     Provide extremely detailed astrological analysis including:
     - Current major planetary transits and their specific degrees
