@@ -1610,7 +1610,9 @@ ${daily.horoscope}
           // Redirect to playlist results page (use absolute URL for Spotify callback)
           const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
           const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-          return res.redirect(`${baseUrl}/playlist-result?personalized=true`);
+          const redirectUrl = `${baseUrl}/playlist-result?personalized=true`;
+          console.log('🔄 Redirecting to:', redirectUrl);
+          return res.redirect(redirectUrl);
         } catch (error) {
           console.error("Error generating personalized playlist:", error);
           return res.redirect('/?spotify=error&reason=playlist_generation_failed');
