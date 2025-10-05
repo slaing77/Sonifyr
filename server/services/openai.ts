@@ -355,35 +355,29 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
           });
         }
         
-        // Analyze each track for planetary resonances with timeout
+        // Analyze each track for astrological resonances (chart-based, no audio analysis)
         const harmonicAnalyses = [];
         for (const song of playlistData.songs) {
           if (song.spotifyId) {
             try {
-              // Add 5-second timeout to prevent infinite hanging
-              const trackCorrelation = await Promise.race([
-                harmonicCorrelationEngine.analyzeTrackCorrelation(
-                  chartData,
-                  {
-                    id: song.spotifyId,
-                    name: song.title,
-                    artist: song.artist,
-                    previewUrl: song.previewUrl
-                  },
-                  {
-                    spotifyService: spotifyService,
-                    accessToken: accessToken
-                  }
-                ),
-                new Promise<null>((_, reject) => 
-                  setTimeout(() => reject(new Error('Audio analysis timeout')), 5000)
-                )
-              ]);
+              const trackCorrelation = await harmonicCorrelationEngine.analyzeTrackCorrelation(
+                chartData,
+                {
+                  id: song.spotifyId,
+                  name: song.title,
+                  artist: song.artist,
+                  previewUrl: song.previewUrl
+                },
+                {
+                  spotifyService: spotifyService,
+                  accessToken: accessToken
+                }
+              );
               
               if (trackCorrelation) {
                 harmonicAnalyses.push(trackCorrelation);
                 
-                // Enhance song with planetary resonance data
+                // Enhance song with astrological resonance data
                 song.planetaryResonance = {
                   dominantPlanet: trackCorrelation.planetaryResonance?.dominantPlanet,
                   cosmicAlignment: trackCorrelation.planetaryResonance?.cosmicAlignment || 0,
@@ -391,11 +385,11 @@ IMPORTANT: Only select songs from the above Spotify recommendations list. These 
                   insights: trackCorrelation.planetaryResonance?.insights || []
                 };
                 
-                console.log(`🎵 ${song.title}: ${trackCorrelation.planetaryResonance?.dominantPlanet || 'No dominant planet'} (${Math.round((trackCorrelation.planetaryResonance?.cosmicAlignment || 0) * 100)}% alignment)`);
+                console.log(`🌟 ${song.title}: Astrological resonance score ${trackCorrelation.overallScore.toFixed(2)}`);
               }
             } catch (error) {
-              console.warn(`⚠️ Skipping audio analysis for ${song.title}:`, error instanceof Error ? error.message : 'Unknown error');
-              // Continue without audio analysis for this track
+              console.warn(`⚠️ Skipping correlation for ${song.title}:`, error instanceof Error ? error.message : 'Unknown error');
+              // Continue without correlation for this track
             }
           }
         }
