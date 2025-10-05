@@ -342,7 +342,7 @@ export default function PlaylistResult() {
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Prominent */}
           <div className="grid md:grid-cols-3 gap-4 mb-8">
             {/* Spotify Button - different behavior based on auto-export status */}
             {(playlistData as any).spotifyPlaylistUrl ? (
@@ -350,9 +350,10 @@ export default function PlaylistResult() {
               <Button 
                 onClick={() => window.open((playlistData as any).spotifyPlaylistUrl, '_blank')}
                 data-testid="button-open-spotify"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-lg py-6"
+                size="lg"
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
+                <ExternalLink className="w-5 h-5 mr-2" />
                 Open in Spotify
               </Button>
             ) : (
@@ -361,16 +362,17 @@ export default function PlaylistResult() {
                 onClick={handleSpotifyExport}
                 disabled={isExporting}
                 data-testid="button-export-spotify"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-lg py-6"
+                size="lg"
               >
                 {isExporting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                     Exporting...
                   </>
                 ) : (
                   <>
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <ExternalLink className="w-5 h-5 mr-2" />
                     Export to Spotify
                   </>
                 )}
@@ -381,18 +383,22 @@ export default function PlaylistResult() {
               variant="outline" 
               onClick={handleGenerateAnother}
               data-testid="button-generate-another"
+              className="text-lg py-6 border-2"
+              size="lg"
             >
-              <Music className="w-4 h-4 mr-2" />
-              Generate Another
+              <Music className="w-5 h-5 mr-2" />
+              Regenerate
             </Button>
             
             <Button 
               variant="outline"
               onClick={handleShare}
               data-testid="button-share"
+              className="text-lg py-6 border-2"
+              size="lg"
             >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Playlist
+              <Share2 className="w-5 h-5 mr-2" />
+              Share
             </Button>
           </div>
 
