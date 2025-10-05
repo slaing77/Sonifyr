@@ -136,7 +136,8 @@ export default function PlaylistResult() {
       if (response.ok) {
         toast({
           title: "🎵 Playlist Exported!",
-          description: `"${playlistData.name}" has been added to your Spotify account.`,
+          description: `"${playlistData.name}" has been added to your Spotify account. Opening in new tab - you can close it and return here.`,
+          duration: 6000,
         });
         
         // Open Spotify playlist in new tab
