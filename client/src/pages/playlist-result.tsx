@@ -99,13 +99,17 @@ export default function PlaylistResult() {
   const handleSpotifyExport = async () => {
     if (!playlistData) return;
     
-    // If user already has Spotify auth, export directly
-    if (spotifyAuth) {
+    // Check if this is a personalized playlist with Spotify already connected
+    // (spotifyConnected flag is set when playlist is generated with stored tokens)
+    const isPersonalized = (playlistData as any).spotifyConnected === true;
+    
+    // If personalized or user already has auth, export directly
+    if (isPersonalized || spotifyAuth) {
       await exportToSpotify();
       return;
     }
     
-    // Otherwise, show Spotify auth dialog
+    // Otherwise, show Spotify auth dialog (Quick Cosmic path)
     setShowSpotifyDialog(true);
   };
 
@@ -116,7 +120,13 @@ export default function PlaylistResult() {
   };
 
   const exportToSpotify = async (authData = spotifyAuth) => {
-    if (!playlistData || !authData) return;
+    if (!playlistData) return;
+    
+    // Check if this is a personalized playlist (Spotify already connected via session)
+    const isPersonalized = (playlistData as any).spotifyConnected === true;
+    
+    // For personalized path: backend uses session tokens, no auth needed in body
+    // For quick cosmic path: pass auth data in body
     
     setIsExporting(true);
     try {
@@ -127,7 +137,8 @@ export default function PlaylistResult() {
         },
         body: JSON.stringify({
           playlistData,
-          spotifyAuth: authData
+          // Only include spotifyAuth for non-personalized (Quick Cosmic) path
+          ...(isPersonalized ? {} : { spotifyAuth: authData })
         }),
       });
 
@@ -145,7 +156,7 @@ export default function PlaylistResult() {
           window.open(result.spotifyUrl, '_blank');
         }
       } else {
-        throw new Error(result.message || 'Export failed');
+        throw new Error(result.message || result.error || 'Export failed');
       }
     } catch (error) {
       console.error('Export error:', error);

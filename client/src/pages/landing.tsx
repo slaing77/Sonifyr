@@ -3,13 +3,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, Music, Star, Crown, Zap, Heart } from "lucide-react";
+import { Sparkles, Music, Star, Crown, Zap, Heart, Check, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import RotatingHeroText from "@/components/rotating-hero-text";
@@ -33,13 +33,9 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  // Rate limiting disabled for testing
   const [canGenerate, setCanGenerate] = useState(true);
   const [lastGeneratedDate, setLastGeneratedDate] = useState<string | null>(null);
-  
-  // Choice screen state
-  const [showChoiceScreen, setShowChoiceScreen] = useState(false);
-  const [parsedBirthData, setParsedBirthData] = useState<any>(null);
+  const [selectedPath, setSelectedPath] = useState<'quick' | 'personalized' | null>(null);
   
   // Email collection state for Quick path
   const [showEmailCollection, setShowEmailCollection] = useState(false);
@@ -53,20 +49,25 @@ export default function Landing() {
     },
   });
 
-  // Rate limiting disabled for testing
-  // useEffect(() => {
-  //   const lastGenerated = localStorage.getItem('lastPlaylistGenerated');
-  //   if (lastGenerated) {
-  //     const lastDate = new Date(lastGenerated);
-  //     const now = new Date();
-  //     const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
-  //     
-  //     if (daysDiff < 7) {
-  //       setCanGenerate(false);
-  //       setLastGeneratedDate(lastDate.toLocaleDateString());
-  //     }
-  //   }
-  // }, []);
+  // Check Spotify connection status
+  const { data: spotifyStatus, refetch: refetchSpotifyStatus } = useQuery({
+    queryKey: ['/api/spotify/status'],
+    refetchOnWindowFocus: true,
+  });
+
+  // Check for Spotify connection success in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('spotify') === 'connected') {
+      refetchSpotifyStatus();
+      toast({
+        title: "Spotify Connected!",
+        description: "You can now generate personalized playlists",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, [refetchSpotifyStatus, toast]);
 
   // Quick cosmic experience (service account only)
   const generateQuickPlaylist = useMutation({
@@ -99,20 +100,35 @@ export default function Landing() {
     },
   });
 
-  // Personalized cosmic journey (with Spotify OAuth)
+  // Personalized playlist with stored Spotify tokens
   const generatePersonalizedPlaylist = useMutation({
     mutationFn: async (birthData: any) => {
       setIsGenerating(true);
-      // First, redirect to Spotify OAuth with birth data in state using base64url encoding
-      const stateData = JSON.stringify(birthData);
-      const state = btoa(stateData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-      window.location.href = `/api/spotify/personalized-auth?state=${state}`;
-      return null; // Won't reach this due to redirect
+      const response = await fetch('/api/generate-personalized-playlist', {
+        method: 'POST',
+        body: JSON.stringify(birthData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate personalized playlist');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setIsGenerating(false);
+      // Store playlist in localStorage for the results page
+      localStorage.setItem('guestPlaylist', JSON.stringify(data.playlist));
+      setLocation('/playlist-result?personalized=true');
     },
     onError: (error: any) => {
       setIsGenerating(false);
       toast({
-        title: "Error starting personalization",
+        title: "Error generating personalized playlist",
         description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
@@ -120,7 +136,6 @@ export default function Landing() {
   });
 
   const onSubmit = (data: BirthData) => {
-    // Parse and validate birth data first
     const birthInfoParts = data.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
     
     if (!birthInfoParts) {
@@ -146,14 +161,21 @@ export default function Landing() {
     const birthTime = `${hour24.toString().padStart(2, '0')}:${minute}`;
     const birthLocation = location.trim();
     
-    // Store parsed data and show choice screen
-    setParsedBirthData({
+    const parsedData = {
       birthDate,
       birthTime,
       birthLocation
-    });
-    setShowChoiceScreen(true);
+    };
+
+    // Route to appropriate generation method
+    if (selectedPath === 'quick') {
+      setShowEmailCollection(true);
+    } else if (selectedPath === 'personalized') {
+      generatePersonalizedPlaylist.mutate(parsedData);
+    }
   };
+
+  const isSpotifyConnected = (spotifyStatus as any)?.connected;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -175,125 +197,7 @@ export default function Landing() {
             <RotatingHeroText />
           </div>
 
-          {/* Choice Screen */}
-          {showChoiceScreen && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="text-center text-2xl">✨ Your Cosmic Profile is Ready ✨</CardTitle>
-                <CardDescription className="text-center text-lg">
-                  How would you like your planetary frequencies translated into music?
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Quick Cosmic Experience */}
-                  <Card className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all duration-200">
-                    <CardContent className="p-6 text-center space-y-4">
-                      <div className="flex justify-center">
-                        <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
-                          <Zap className="h-8 w-8 text-white" />
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900">🌟 Quick Cosmic Experience</h3>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center justify-center space-x-2">
-                          <Sparkles className="h-4 w-4" />
-                          <span>Instant Planetary Analysis</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Music className="h-4 w-4" />
-                          <span>Universal Frequency Detection</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Zap className="h-4 w-4" />
-                          <span>No signup required</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Star className="h-4 w-4" />
-                          <span>Ready in 30 seconds</span>
-                        </div>
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          setShowEmailCollection(true);
-                        }}
-                        disabled={isGenerating}
-                        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                        data-testid="button-quick-cosmic"
-                      >
-                        <Zap className="w-4 h-4 mr-2" />
-                        Choose Quick Cosmic Experience
-                      </Button>
-                      <p className="text-xs text-gray-500">Perfect for exploring how planetary frequencies work with music</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Deeply Personalized Journey */}
-                  <Card className="cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all duration-200">
-                    <CardContent className="p-6 text-center space-y-4">
-                      <div className="flex justify-center">
-                        <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full">
-                          <Heart className="h-8 w-8 text-white" />
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900">🎯 Deeply Personalized Journey</h3>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center justify-center space-x-2">
-                          <Heart className="h-4 w-4" />
-                          <span>Your Music DNA + Cosmic Insights</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Music className="h-4 w-4" />
-                          <span>Tailored to YOUR listening history</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Crown className="h-4 w-4" />
-                          <span>Connect with Spotify</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Sparkles className="h-4 w-4" />
-                          <span>Enhanced accuracy & relevance</span>
-                        </div>
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          generatePersonalizedPlaylist.mutate(parsedBirthData);
-                        }}
-                        disabled={isGenerating}
-                        className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                        data-testid="button-personalized-cosmic"
-                      >
-                        {isGenerating ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Connecting to Spotify...
-                          </>
-                        ) : (
-                          <>
-                            <Heart className="w-4 h-4 mr-2" />
-                            Connect Spotify for Deep Personalization
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-xs text-gray-500">Blend your unique taste with cosmic frequencies</p>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setShowChoiceScreen(false)}
-                    className="text-gray-500"
-                  >
-                    ← Back to edit birth info
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Email Collection Screen - Only show after Quick Cosmic Experience selection */}
+          {/* Email Collection Screen */}
           {showEmailCollection && (
             <Card className="mb-8">
               <CardHeader>
@@ -304,7 +208,6 @@ export default function Landing() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Email Input */}
                   <div className="space-y-2">
                     <Label htmlFor="quick-email" className="text-lg font-semibold">📧 Your Email Address</Label>
                     <Input
@@ -321,7 +224,6 @@ export default function Landing() {
                     </p>
                   </div>
                   
-                  {/* Newsletter Options */}
                   <div className="space-y-4 pt-4 border-t border-gray-200">
                     <Label className="text-base font-medium">Choose your cosmic journey:</Label>
                     <RadioGroup
@@ -347,11 +249,9 @@ export default function Landing() {
                     </RadioGroup>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex flex-col gap-4 pt-6">
                     <Button 
                       onClick={() => {
-                        console.log('Generate Quick Playlist button clicked', { quickEmail, parsedBirthData });
                         if (!quickEmail || !quickEmail.includes('@')) {
                           toast({
                             title: "Valid email required",
@@ -360,36 +260,24 @@ export default function Landing() {
                           });
                           return;
                         }
-                        // Use parsedBirthData if available, otherwise get it from form
-                        const birthData = parsedBirthData || (() => {
-                          const formData = form.getValues();
-                          const birthInfoParts = formData.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
-                          if (!birthInfoParts) return null;
-                          
-                          const [, month, day, year, hour, minute, ampm, location] = birthInfoParts;
-                          let hour24 = parseInt(hour);
-                          if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
-                            hour24 += 12;
-                          } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
-                            hour24 = 0;
-                          }
-                          
-                          return {
-                            birthDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
-                            birthTime: `${hour24.toString().padStart(2, '0')}:${minute}`,
-                            birthLocation: location.trim()
-                          };
-                        })();
+
+                        const formData = form.getValues();
+                        const birthInfoParts = formData.birthInfo.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(am|pm)\s+(.+)$/i);
+                        if (!birthInfoParts) return;
                         
-                        if (!birthData) {
-                          toast({
-                            title: "Birth data required",
-                            description: "Please complete the birth information form first",
-                            variant: "destructive",
-                          });
-                          setShowEmailCollection(false);
-                          return;
+                        const [, month, day, year, hour, minute, ampm, location] = birthInfoParts;
+                        let hour24 = parseInt(hour);
+                        if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
+                          hour24 += 12;
+                        } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
+                          hour24 = 0;
                         }
+                        
+                        const birthData = {
+                          birthDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+                          birthTime: `${hour24.toString().padStart(2, '0')}:${minute}`,
+                          birthLocation: location.trim()
+                        };
                         
                         generateQuickPlaylist.mutate({
                           ...birthData,
@@ -419,7 +307,7 @@ export default function Landing() {
                       onClick={() => setShowEmailCollection(false)}
                       className="text-gray-500"
                     >
-                      ← Back to choose experience type
+                      ← Back
                     </Button>
                   </div>
                 </div>
@@ -427,133 +315,262 @@ export default function Landing() {
             </Card>
           )}
 
-          {/* Birth Data Form - Always show unless email collection is active */}
+          {/* Main Content: Path Selection or Form */}
           {!showEmailCollection && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="text-center">Enter Your Birth Information</CardTitle>
-                <CardDescription className="text-center">
-                  Enter your birth details, then choose your cosmic experience
-                </CardDescription>
-              </CardHeader>
-            <CardContent>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-6">
-                  {/* Birth Information - Top Priority */}
-                  <div className="space-y-2">
-                    <Label htmlFor="birthInfo" className="text-lg font-semibold">🌟 Your Cosmic Birth Data</Label>
-                    <Input
-                      id="birthInfo"
-                      type="text"
-                      placeholder="3/15/1990 2:30 pm New York, USA"
-                      data-testid="input-birth-info"
-                      {...form.register("birthInfo")}
-                      className="text-center text-lg py-3"
-                    />
-                    <p className="text-sm text-gray-500 text-center">
-                      Format: mm/dd/yyyy 00:00 am/pm City, Country
-                    </p>
-                    {form.formState.errors.birthInfo && (
-                      <p className="text-sm text-red-500 text-center">{form.formState.errors.birthInfo.message}</p>
-                    )}
-                  </div>
-                  
-                </div>
-                
-                <div className="text-center">
-                  {!canGenerate ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <h3 className="font-semibold text-amber-800 mb-2">Weekly Limit Reached</h3>
-                        <p className="text-amber-700 text-sm">
-                          You generated your free playlist on {lastGeneratedDate}. 
-                          Come back next week for a new one, or upgrade to Premium for unlimited access!
-                        </p>
-                      </div>
-                      <Link href="/waitlist">
-                        <Button 
-                          size="lg" 
-                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full md:w-auto px-8"
-                          data-testid="button-upgrade-from-limit"
-                        >
-                          <Crown className="w-5 h-5 mr-2" />
-                          Join Wait List
-                        </Button>
-                      </Link>
+            <>
+              {!selectedPath ? (
+                /* Path Selection Screen */
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="text-center text-2xl">Choose Your Cosmic Journey</CardTitle>
+                    <CardDescription className="text-center text-lg">
+                      Select how you'd like to generate your personalized playlist
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Quick Cosmic Experience */}
+                      <Card 
+                        className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                        onClick={() => setSelectedPath('quick')}
+                      >
+                        <CardContent className="p-6 text-center space-y-4">
+                          <div className="flex justify-center">
+                            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
+                              <Zap className="h-8 w-8 text-white" />
+                            </div>
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900">🌟 Quick Cosmic Experience</h3>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex items-center justify-center space-x-2">
+                              <Sparkles className="h-4 w-4" />
+                              <span>Instant Planetary Analysis</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Music className="h-4 w-4" />
+                              <span>Universal Frequency Detection</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Zap className="h-4 w-4" />
+                              <span>No Spotify needed</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Star className="h-4 w-4" />
+                              <span>Ready in 30 seconds</span>
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                            data-testid="button-quick-cosmic"
+                          >
+                            <Zap className="w-4 h-4 mr-2" />
+                            Choose Quick Experience
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      {/* Deeply Personalized Journey */}
+                      <Card 
+                        className="cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all duration-200"
+                        onClick={() => setSelectedPath('personalized')}
+                      >
+                        <CardContent className="p-6 text-center space-y-4">
+                          <div className="flex justify-center">
+                            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full">
+                              <Heart className="h-8 w-8 text-white" />
+                            </div>
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900">🎯 Deeply Personalized Journey</h3>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex items-center justify-center space-x-2">
+                              <Heart className="h-4 w-4" />
+                              <span>Your Music DNA + Cosmic Insights</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Music className="h-4 w-4" />
+                              <span>Based on YOUR listening history</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Crown className="h-4 w-4" />
+                              <span>Seamless Spotify export</span>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Sparkles className="h-4 w-4" />
+                              <span>Enhanced accuracy & relevance</span>
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                            data-testid="button-personalized-cosmic"
+                          >
+                            <Heart className="w-4 h-4 mr-2" />
+                            Choose Personalized Journey
+                          </Button>
+                        </CardContent>
+                      </Card>
                     </div>
-                  ) : (
-                    <Button 
-                      type="submit" 
-                      size="lg" 
-                      disabled={isGenerating}
-                      data-testid="button-generate-playlist"
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 w-full md:w-auto px-12"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          Consulting the Stars...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5 mr-2" />
-                          Generate My Cosmic Playlist
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+              ) : (
+                /* Birth Data Form */
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="text-center">
+                      {selectedPath === 'quick' ? '⚡ Quick Cosmic Experience' : '🎯 Personalized Journey'}
+                    </CardTitle>
+                    <CardDescription className="text-center">
+                      {selectedPath === 'quick' 
+                        ? 'Enter your birth details to generate your cosmic playlist'
+                        : 'Connect Spotify and enter your birth details for the ultimate personalized experience'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Spotify Connection Status for Personalized Path */}
+                    {selectedPath === 'personalized' && (
+                      <div className="mb-6">
+                        {isSpotifyConnected ? (
+                          <div className="flex items-center justify-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <Check className="h-5 w-5 text-green-600" />
+                            <div className="flex-1">
+                              <p className="font-semibold text-green-800">
+                                ✓ Spotify Connected
+                              </p>
+                              <p className="text-sm text-green-600">
+                                {(spotifyStatus as any)?.user?.display_name || 'Spotify User'}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Disconnect logic can be added here
+                                window.location.href = '/api/spotify/connect';
+                              }}
+                              className="text-green-700 hover:text-green-800"
+                            >
+                              Reconnect
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-start space-x-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                              <Heart className="h-5 w-5 text-purple-600 mt-0.5" />
+                              <div>
+                                <p className="font-semibold text-purple-800 mb-1">
+                                  Connect Spotify First
+                                </p>
+                                <p className="text-sm text-purple-600 mb-3">
+                                  To create a truly personalized playlist, we need access to your Spotify listening history and the ability to export directly to your account.
+                                </p>
+                                <Button
+                                  onClick={() => {
+                                    window.location.href = '/api/spotify/connect';
+                                  }}
+                                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                  data-testid="button-connect-spotify"
+                                >
+                                  <Music className="w-4 h-4 mr-2" />
+                                  Connect Spotify
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="birthInfo" className="text-lg font-semibold">🌟 Your Cosmic Birth Data</Label>
+                        <Input
+                          id="birthInfo"
+                          type="text"
+                          placeholder="3/15/1990 2:30 pm New York, USA"
+                          data-testid="input-birth-info"
+                          {...form.register("birthInfo")}
+                          className="text-center text-lg py-3"
+                          disabled={selectedPath === 'personalized' && !isSpotifyConnected}
+                        />
+                        <p className="text-sm text-gray-500 text-center">
+                          Format: mm/dd/yyyy 00:00 am/pm City, Country
+                        </p>
+                        {form.formState.errors.birthInfo && (
+                          <p className="text-sm text-red-500 text-center">{form.formState.errors.birthInfo.message}</p>
+                        )}
+                      </div>
+                      
+                      <div className="flex flex-col gap-4">
+                        <Button 
+                          type="submit" 
+                          size="lg" 
+                          disabled={isGenerating || (selectedPath === 'personalized' && !isSpotifyConnected)}
+                          data-testid="button-generate-playlist"
+                          className={selectedPath === 'quick' 
+                            ? "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 w-full" 
+                            : "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 w-full"}
+                        >
+                          {isGenerating ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                              Consulting the Stars...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              Generate My Cosmic Playlist
+                            </>
+                          )}
+                        </Button>
+
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          onClick={() => {
+                            setSelectedPath(null);
+                            form.reset();
+                          }}
+                          className="text-gray-500"
+                        >
+                          ← Back to choose experience
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardContent className="p-6 text-center">
-                <Sparkles className="h-8 w-8 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">AI-Powered Curation</h3>
-                <p className="text-gray-600">
-                  Your celestial blueprint guides our AI in creating a personalized playlist that resonates with your cosmic energy.
+                <Star className="h-8 w-8 text-blue-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Astrological Analysis</h3>
+                <p className="text-sm text-gray-600">
+                  We analyze your birth chart and current planetary transits to understand your cosmic energy
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center">
-                <Star className="h-8 w-8 text-purple-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Weekly Transits</h3>
-                <p className="text-gray-600">
-                  Each song is selected based on current planetary movements and how they interact with your birth chart.
+                <Music className="h-8 w-8 text-purple-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Curation</h3>
+                <p className="text-sm text-gray-600">
+                  Advanced AI matches your astrological frequencies with music that resonates
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center">
-                <Music className="h-8 w-8 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Spotify Export</h3>
-                <p className="text-gray-600">
-                  View your playlist and export it directly to Spotify with detailed astrological explanations.
+                <Sparkles className="h-8 w-8 text-pink-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Weekly Playlists</h3>
+                <p className="text-sm text-gray-600">
+                  Each song is carefully chosen for a specific day based on that day's planetary alignment
                 </p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Premium Teaser */}
-          <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Crown className="h-8 w-8 text-amber-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-amber-800">Want More Cosmic Experiences?</h3>
-              <p className="text-amber-700 mb-4">
-                Join the wait list to unlock more cosmic secrets
-              </p>
-              <Link href="/waitlist">
-                <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100" data-testid="button-learn-premium">
-                  Join Wait List
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

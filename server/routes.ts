@@ -1414,6 +1414,113 @@ ${daily.horoscope}
     }
   });
 
+  // Generate personalized playlist using stored Spotify tokens
+  app.post('/api/generate-personalized-playlist', async (req, res) => {
+    try {
+      const { birthDate, birthTime, birthLocation } = req.body;
+      
+      // Validate birth data
+      if (!birthDate || !birthTime || !birthLocation) {
+        return res.status(400).json({ error: 'Missing required birth data fields' });
+      }
+      
+      // Check for stored Spotify tokens
+      const tokens = (req.session as any)?.spotifyTokens;
+      if (!tokens || !tokens.access_token) {
+        return res.status(401).json({ error: 'Spotify not connected. Please connect your Spotify account first.' });
+      }
+      
+      console.log("\n=== GENERATING PERSONALIZED PLAYLIST WITH STORED TOKENS ===");
+      console.log("Birth data:", { birthDate, birthTime, birthLocation });
+      console.log("Tokens available:", !!tokens);
+      console.log("=================================");
+      
+      // Check if token is expired and refresh if needed
+      const isExpired = tokens.expires_at && Date.now() >= tokens.expires_at;
+      let accessToken = tokens.access_token;
+      
+      if (isExpired && tokens.refresh_token) {
+        try {
+          console.log("Token expired, refreshing...");
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refresh_token);
+          accessToken = refreshed.access_token;
+          
+          // Update session with new token
+          (req.session as any).spotifyTokens = {
+            access_token: refreshed.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: Date.now() + refreshed.expires_in * 1000
+          };
+          
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          
+          console.log("✓ Token refreshed successfully");
+        } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
+          // Clear stale tokens
+          delete (req.session as any).spotifyTokens;
+          delete (req.session as any).spotifyUser;
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          return res.status(401).json({ error: 'Spotify token expired. Please reconnect your Spotify account.' });
+        }
+      }
+      
+      // Get user's music profile
+      const musicProfile = await spotifyService.getUserMusicProfile(accessToken);
+      console.log("✓ Retrieved user music profile");
+      
+      // Generate personalized playlist
+      const playlistData = await openAIService.generatePersonalizedPlaylist({
+        date: birthDate,
+        time: birthTime,
+        location: birthLocation,
+      }, 'guest', accessToken, musicProfile);
+      
+      console.log("✓ Playlist generated:", playlistData.name);
+      
+      // Store playlist in session
+      const spotifyUser = (req.session as any)?.spotifyUser;
+      const enhancedPlaylistData = {
+        ...playlistData,
+        spotifyConnected: true,
+        spotifyUser: spotifyUser || { display_name: 'Spotify User' }
+      };
+      
+      (req.session as any).guestPlaylist = enhancedPlaylistData;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            reject(err);
+          } else {
+            console.log('✅ Session saved with playlist data');
+            resolve();
+          }
+        });
+      });
+      
+      // Return playlist data with spotifyConnected flag
+      res.json({
+        success: true,
+        playlist: enhancedPlaylistData
+      });
+    } catch (error) {
+      console.error("Error generating personalized playlist:", error);
+      res.status(500).json({ error: "Failed to generate personalized playlist" });
+    }
+  });
+
   // Spotify Integration Routes
   
   // Start Spotify authentication
@@ -1450,6 +1557,81 @@ ${daily.horoscope}
     } catch (error) {
       console.error("Error getting guest Spotify auth URL:", error);
       res.status(500).json({ error: "Failed to get Spotify auth URL" });
+    }
+  });
+
+  // Simple Spotify connect (upfront authentication)
+  app.get('/api/spotify/connect', async (req, res) => {
+    try {
+      // Create a simple state for connection-only auth
+      const connectState = `connect_${Date.now()}`;
+      const authUrl = spotifyService.getAuthUrl(connectState);
+      
+      console.log("\n=== SPOTIFY CONNECT REQUEST ===");
+      console.log("Auth URL:", authUrl);
+      console.log("===============================");
+      
+      // Redirect to Spotify OAuth
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error("Error getting Spotify connect URL:", error);
+      res.status(500).json({ error: "Failed to get Spotify auth URL" });
+    }
+  });
+
+  // Check Spotify connection status
+  app.get('/api/spotify/status', async (req, res) => {
+    try {
+      const tokens = (req.session as any)?.spotifyTokens;
+      const spotifyUser = (req.session as any)?.spotifyUser;
+      
+      if (!tokens || !tokens.access_token) {
+        return res.json({ connected: false });
+      }
+      
+      // Check if token is expired
+      const isExpired = tokens.expires_at && Date.now() >= tokens.expires_at;
+      
+      if (isExpired && tokens.refresh_token) {
+        try {
+          // Refresh the token
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refresh_token);
+          (req.session as any).spotifyTokens = {
+            access_token: refreshed.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: Date.now() + refreshed.expires_in * 1000
+          };
+          
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
+          // Clear stale tokens from session to allow clean reconnection
+          delete (req.session as any).spotifyTokens;
+          delete (req.session as any).spotifyUser;
+          
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          
+          return res.json({ connected: false });
+        }
+      }
+      
+      return res.json({
+        connected: true,
+        user: spotifyUser || { display_name: 'Spotify User' }
+      });
+    } catch (error) {
+      console.error("Error checking Spotify status:", error);
+      res.status(500).json({ error: "Failed to check connection status" });
     }
   });
 
@@ -1529,6 +1711,106 @@ ${daily.horoscope}
       
       // Get user's Spotify profile
       const spotifyUser = await spotifyService.getUserProfile(tokens.access_token);
+      
+      // Check if this is a simple connect (upfront auth without birth data)
+      const isConnect = (state as string).startsWith('connect_');
+      
+      if (isConnect) {
+        console.log("\n=== SPOTIFY CONNECTION SUCCESSFUL ===");
+        console.log("Spotify user:", spotifyUser.display_name);
+        console.log("=================================");
+        
+        // Store tokens in session
+        if (req.session) {
+          (req.session as any).spotifyTokens = {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: Date.now() + tokens.expires_in * 1000
+          };
+          (req.session as any).spotifyUser = {
+            id: spotifyUser.id,
+            display_name: spotifyUser.display_name
+          };
+          
+          // Save session before redirect
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error('Session save error:', err);
+                reject(err);
+              } else {
+                console.log('✅ Session saved with Spotify connection');
+                resolve();
+              }
+            });
+          });
+        }
+        
+        // Redirect back to landing page with success indicator
+        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+        const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
+        const redirectUrl = `${baseUrl}/?spotify=connected`;
+        
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Connected to Spotify!</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: system-ui, -apple-system, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                color: white;
+              }
+              .container {
+                text-align: center;
+                padding: 2rem;
+              }
+              .checkmark {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.2);
+                margin: 0 auto 1.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 3rem;
+              }
+              h1 {
+                font-size: 1.8rem;
+                margin: 0 0 0.5rem;
+              }
+              p {
+                font-size: 1rem;
+                opacity: 0.9;
+                margin: 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="checkmark">✓</div>
+              <h1>🎵 Spotify Connected!</h1>
+              <p>Redirecting you back...</p>
+            </div>
+            <script>
+              // Redirect after a brief moment
+              setTimeout(() => {
+                window.location.href = '${redirectUrl}';
+              }, 1500);
+            </script>
+          </body>
+          </html>
+        `);
+      }
       
       // Check if this is a personalized auth (contains birth data)
       const isPersonalized = (state as string).startsWith('personalized_');
@@ -2403,25 +2685,78 @@ ${daily.horoscope}
     }
   });
 
-  // Guest playlist export to Spotify - No authentication required
+  // Guest playlist export to Spotify - Uses stored tokens or provided auth
   app.post('/api/guest/export-spotify', async (req, res) => {
     try {
       const { playlistData, spotifyAuth } = req.body;
       
-      if (!playlistData || !spotifyAuth) {
+      if (!playlistData) {
         return res.status(400).json({ 
           error: "Missing required data",
-          message: "Playlist data and Spotify authentication are required."
+          message: "Playlist data is required."
         });
       }
       
-      // Verify Spotify token is still valid
-      try {
-        await spotifyService.getUserProfile(spotifyAuth.spotifyAccessToken);
-      } catch (error) {
+      // Try to use stored Spotify tokens from session first (new flow)
+      let accessToken = null;
+      const storedTokens = (req.session as any)?.spotifyTokens;
+      
+      if (storedTokens && storedTokens.access_token) {
+        console.log("Using stored Spotify tokens from session for export");
+        
+        // Check if token is expired and refresh if needed
+        const isExpired = storedTokens.expires_at && Date.now() >= storedTokens.expires_at;
+        
+        if (isExpired && storedTokens.refresh_token) {
+          try {
+            console.log("Refreshing expired token for export...");
+            const refreshed = await spotifyService.refreshAccessToken(storedTokens.refresh_token);
+            accessToken = refreshed.access_token;
+            
+            // Update session with new token
+            (req.session as any).spotifyTokens = {
+              access_token: refreshed.access_token,
+              refresh_token: storedTokens.refresh_token,
+              expires_at: Date.now() + refreshed.expires_in * 1000
+            };
+            
+            await new Promise<void>((resolve, reject) => {
+              req.session.save((err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+          } catch (refreshError) {
+            console.error("Token refresh failed for export:", refreshError);
+            // Fall back to spotifyAuth from body if refresh fails
+            accessToken = null;
+          }
+        } else {
+          accessToken = storedTokens.access_token;
+        }
+      }
+      
+      // Fall back to spotifyAuth from body if no stored tokens (old Quick Cosmic flow)
+      if (!accessToken && spotifyAuth) {
+        console.log("Using Spotify auth from request body");
+        accessToken = spotifyAuth.spotifyAccessToken;
+        
+        // Verify token is still valid
+        try {
+          await spotifyService.getUserProfile(accessToken);
+        } catch (error) {
+          return res.status(401).json({
+            error: "Spotify token expired",
+            message: "Please reconnect to Spotify and try again."
+          });
+        }
+      }
+      
+      // If we still don't have a token, return error
+      if (!accessToken) {
         return res.status(401).json({
-          error: "Spotify token expired",
-          message: "Please reconnect to Spotify and try again."
+          error: "No Spotify authentication",
+          message: "Please connect your Spotify account first."
         });
       }
       
@@ -2438,10 +2773,20 @@ ${daily.horoscope}
         playlistData.description || `Cosmic playlist for ${playlistData.weekStart} to ${playlistData.weekEnd}`
       );
       
+      // Get Spotify user ID (from stored session or provided auth)
+      const spotifyUserId = (req.session as any)?.spotifyUser?.id || spotifyAuth?.spotifyId;
+      
+      if (!spotifyUserId) {
+        return res.status(400).json({
+          error: "Missing Spotify user ID",
+          message: "Unable to determine Spotify user. Please reconnect."
+        });
+      }
+      
       // Create playlist on Spotify
       const spotifyPlaylist = await spotifyService.createPlaylist(
-        spotifyAuth.spotifyAccessToken,
-        spotifyAuth.spotifyId,
+        accessToken,
+        spotifyUserId,
         playlistData.name,
         description,
         playlistData.songs
