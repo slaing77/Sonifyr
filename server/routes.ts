@@ -1573,39 +1573,29 @@ ${daily.horoscope}
           // Handle email sending if requested (will be handled in the OpenAI service)
           // Newsletter signup is handled in the existing guest playlist route
           
-          // Store the generated playlist data in localStorage for the results page
-          const resultData = {
-            ...playlistData,
-            spotifyConnected: true,
-            spotifyUser: {
+          // Store tokens and playlist in session
+          if (req.session) {
+            (req.session as any).spotifyTokens = {
+              access_token: tokens.access_token,
+              refresh_token: tokens.refresh_token,
+              expires_at: Date.now() + tokens.expires_in * 1000
+            };
+            (req.session as any).spotifyUser = {
               id: spotifyUser.id,
               display_name: spotifyUser.display_name
-            }
-          };
+            };
+            (req.session as any).guestPlaylist = {
+              ...playlistData,
+              spotifyConnected: true,
+              spotifyUser: {
+                id: spotifyUser.id,
+                display_name: spotifyUser.display_name
+              }
+            };
+          }
           
-          // Create a success page that stores data and redirects
-          res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Personalized Cosmic Playlist Ready!</title>
-            </head>
-            <body>
-              <script>
-                try {
-                  localStorage.setItem('guestPlaylist', ${JSON.stringify(JSON.stringify(resultData))});
-                  window.location.href = '/playlist-result?personalized=true';
-                } catch (error) {
-                  console.error('Error storing playlist data:', error);
-                  window.location.href = '/?spotify=error&reason=storage_error';
-                }
-              </script>
-              <h2>🎵 Generating your personalized cosmic playlist...</h2>
-              <p>Please wait while we redirect you to your results...</p>
-            </body>
-            </html>
-          `);
-          return;
+          // Redirect to playlist results page
+          return res.redirect('/playlist-result?personalized=true');
         } catch (error) {
           console.error("Error generating personalized playlist:", error);
           return res.redirect('/?spotify=error&reason=playlist_generation_failed');
@@ -1674,6 +1664,20 @@ ${daily.horoscope}
   });
 
   // Get user's Spotify connection status
+  // Get session playlist data (for personalized Spotify flow)
+  app.get('/api/session/playlist', async (req, res) => {
+    try {
+      const playlist = (req.session as any)?.guestPlaylist;
+      if (!playlist) {
+        return res.status(404).json({ error: 'No playlist found in session' });
+      }
+      res.json(playlist);
+    } catch (error) {
+      console.error('Error retrieving session playlist:', error);
+      res.status(500).json({ error: 'Failed to retrieve playlist' });
+    }
+  });
+
   app.get('/api/spotify/status', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;

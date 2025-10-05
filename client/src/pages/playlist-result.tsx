@@ -16,17 +16,39 @@ export default function PlaylistResult() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedData = localStorage.getItem('guestPlaylist');
-    if (storedData) {
-      const playlist = JSON.parse(storedData);
-      setPlaylistData(playlist);
+    const loadPlaylist = async () => {
+      // Check if this is a personalized Spotify flow
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPersonalized = urlParams.get('personalized') === 'true';
       
-      // Add social media meta tags for beautiful sharing
-      updateMetaTags(playlist);
-    } else {
-      // Redirect back to landing if no playlist data
-      setLocation('/');
-    }
+      if (isPersonalized) {
+        // Fetch playlist from session
+        try {
+          const response = await fetch('/api/session/playlist');
+          if (response.ok) {
+            const playlist = await response.json();
+            setPlaylistData(playlist);
+            updateMetaTags(playlist);
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching session playlist:', error);
+        }
+      }
+      
+      // Fallback to localStorage
+      const storedData = localStorage.getItem('guestPlaylist');
+      if (storedData) {
+        const playlist = JSON.parse(storedData);
+        setPlaylistData(playlist);
+        updateMetaTags(playlist);
+      } else {
+        // Redirect back to landing if no playlist data
+        setLocation('/');
+      }
+    };
+    
+    loadPlaylist();
   }, [setLocation]);
 
   const updateMetaTags = (playlist: PlaylistData) => {

@@ -590,7 +590,8 @@ export class SpotifyService {
     if (targetTempo !== undefined) params.append('target_tempo', targetTempo.toString());
     
     const seedParams = allSeeds.join('&');
-    const url = `/recommendations?${seedParams}&${params.toString()}`;
+    // Fix: Don't include leading slash - getSpotifyApi already adds /v1/
+    const url = `recommendations?${seedParams}&${params.toString()}`;
     
     console.log('Getting recommendations from:', url);
     const response = await this.getSpotifyApi(accessToken, url);
