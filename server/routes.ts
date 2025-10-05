@@ -1592,6 +1592,19 @@ ${daily.horoscope}
                 display_name: spotifyUser.display_name
               }
             };
+            
+            // Save session before redirect
+            await new Promise<void>((resolve, reject) => {
+              req.session.save((err) => {
+                if (err) {
+                  console.error('Session save error:', err);
+                  reject(err);
+                } else {
+                  console.log('✅ Session saved successfully with playlist data');
+                  resolve();
+                }
+              });
+            });
           }
           
           // Redirect to playlist results page
@@ -1667,10 +1680,16 @@ ${daily.horoscope}
   // Get session playlist data (for personalized Spotify flow)
   app.get('/api/session/playlist', async (req, res) => {
     try {
+      console.log('📊 Session playlist request - Session ID:', req.sessionID);
+      console.log('📊 Session data keys:', req.session ? Object.keys(req.session) : 'No session');
+      
       const playlist = (req.session as any)?.guestPlaylist;
       if (!playlist) {
+        console.log('❌ No playlist found in session');
         return res.status(404).json({ error: 'No playlist found in session' });
       }
+      
+      console.log('✅ Playlist found in session:', playlist.name);
       res.json(playlist);
     } catch (error) {
       console.error('Error retrieving session playlist:', error);

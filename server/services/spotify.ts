@@ -568,30 +568,36 @@ export class SpotifyService {
       limit = 20
     } = options;
 
-    // Build query parameters
-    const params = new URLSearchParams();
-    
-    // Add seeds (max 5 total)
-    const allSeeds = [
-      ...seedTracks.slice(0, 3).map(id => `seed_tracks=${id}`),
-      ...seedArtists.slice(0, 2).map(id => `seed_artists=${id}`)
-    ];
-    
-    if (allSeeds.length === 0) {
+    // Build query parameters properly
+    if (seedTracks.length === 0 && seedArtists.length === 0) {
       // No seeds available, return empty array
       return [];
     }
     
-    params.append('limit', limit.toString());
+    // Build the URL with proper query string encoding
+    const queryParts: string[] = [];
+    
+    // Add seed tracks (max 3)
+    const trackSeeds = seedTracks.slice(0, 3);
+    if (trackSeeds.length > 0) {
+      queryParts.push(`seed_tracks=${trackSeeds.join(',')}`);
+    }
+    
+    // Add seed artists (max 2)
+    const artistSeeds = seedArtists.slice(0, 2);
+    if (artistSeeds.length > 0) {
+      queryParts.push(`seed_artists=${artistSeeds.join(',')}`);
+    }
+    
+    queryParts.push(`limit=${limit}`);
     
     // Add target audio features if provided
-    if (targetEnergy !== undefined) params.append('target_energy', targetEnergy.toString());
-    if (targetValence !== undefined) params.append('target_valence', targetValence.toString());
-    if (targetTempo !== undefined) params.append('target_tempo', targetTempo.toString());
+    if (targetEnergy !== undefined) queryParts.push(`target_energy=${targetEnergy}`);
+    if (targetValence !== undefined) queryParts.push(`target_valence=${targetValence}`);
+    if (targetTempo !== undefined) queryParts.push(`target_tempo=${targetTempo}`);
     
-    const seedParams = allSeeds.join('&');
     // Fix: Don't include leading slash - getSpotifyApi already adds /v1/
-    const url = `recommendations?${seedParams}&${params.toString()}`;
+    const url = `recommendations?${queryParts.join('&')}`;
     
     console.log('Getting recommendations from:', url);
     const response = await this.getSpotifyApi(accessToken, url);
