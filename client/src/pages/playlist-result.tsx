@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Music, ExternalLink, Crown, Share2 } from "lucide-react";
+import { Sparkles, Music, ExternalLink, Share2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { SpotifyAuthDialog } from "@/components/spotify-auth-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -404,60 +404,38 @@ export default function PlaylistResult() {
             </Button>
           </div>
 
-          {/* Weekly Limit Notice */}
+          {/* Limit Notice */}
           <Card className="bg-blue-50 border-blue-200 mb-8">
             <CardContent className="p-6 text-center">
               <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                ⏰ Free Weekly Limit
+                ⏰ Limits
               </h3>
-              <p className="text-blue-700 mb-4">
-                We're keeping the cosmos sustainable! Our AI and astrological services have usage limits to ensure quality for everyone. Your next playlist will be ready next week—thank you for your patience! ✨
+              <p className="text-blue-700">
+                We're keeping the cosmos sustainable! Our AI astrological services have usage limits to ensure quality for everyone. ✨
               </p>
             </CardContent>
           </Card>
 
-          {/* Premium Upgrade CTA */}
-          <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+          {/* Waitlist CTA */}
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200">
             <CardContent className="p-8 text-center">
-              <Crown className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-amber-800 mb-4">
-                ✨ Unlock Your Full Cosmic Experience ✨
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                Loved Sonifyr Free? 🌟
               </h2>
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className="text-left">
-                  <h4 className="font-semibold text-amber-800 mb-2">Premium Features:</h4>
-                  <ul className="space-y-1 text-amber-700">
-                    <li>🎵 Unlimited playlist generation</li>
-                    <li>💬 AI chat for cosmic guidance</li>
-                    <li>📊 Detailed birth chart readings</li>
-                    <li>🎯 Mood tracking & analytics</li>
-                  </ul>
-                </div>
-                <div className="text-left">
-                  <h4 className="font-semibold text-amber-800 mb-2">Plus Get:</h4>
-                  <ul className="space-y-1 text-amber-700">
-                    <li>🔮 Daily horoscopes</li>
-                    <li>🌟 Transit details</li>
-                    <li>📤 Direct Spotify export</li>
-                    <li>💾 Save & share everything</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <Link href="/waitlist">
-                  <Button 
-                    size="lg" 
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full md:w-auto px-8"
-                    data-testid="button-upgrade-premium"
-                  >
-                    <Crown className="w-5 h-5 mr-2" />
-                    Join Wait List
-                  </Button>
-                </Link>
-                <p className="text-sm text-amber-600">
-                  Start your cosmic journey with unlimited features
-                </p>
-              </div>
+              <p className="text-xl text-gray-700 mb-2">
+                Wait till you see what's orbiting next…
+              </p>
+              <p className="text-lg text-gray-600 mb-6">
+                Sign up to be the first to experience <span className="font-bold text-purple-700">Stardust + Nova</span> — where your stars go supernova.
+              </p>
+              <Link href="/waitlist">
+                <Button 
+                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-lg px-8 py-6"
+                  data-testid="button-waitlist"
+                >
+                  ✨ Join the waitlist
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
