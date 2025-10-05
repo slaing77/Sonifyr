@@ -1607,8 +1607,10 @@ ${daily.horoscope}
             });
           }
           
-          // Redirect to playlist results page
-          return res.redirect('/playlist-result?personalized=true');
+          // Redirect to playlist results page (use absolute URL for Spotify callback)
+          const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+          const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
+          return res.redirect(`${baseUrl}/playlist-result?personalized=true`);
         } catch (error) {
           console.error("Error generating personalized playlist:", error);
           return res.redirect('/?spotify=error&reason=playlist_generation_failed');
