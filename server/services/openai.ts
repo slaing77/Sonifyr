@@ -278,12 +278,18 @@ Use these actual transits to select appropriate songs for each day. Match the so
     - Recommended actions and areas of focus
     - Emotional and spiritual guidance
 
+    CRITICAL PERSONALIZATION REQUIREMENT:
+    - You MUST reference the user's Sun sign, Moon sign, and Rising sign in the astrologicalSummary
+    - Make it feel personal by saying things like "As a [Sun Sign] Sun with [Moon Sign] Moon and [Rising Sign] Rising..." 
+    - Connect the current transits specifically to their birth chart
+    - Make them feel seen and understood through their unique astrological profile
+
     Respond with a JSON object in this exact format:
 
     {
       "name": "Playlist name reflecting astrological theme",
-      "description": "Brief description of the cosmic influences",
-      "astrologicalSummary": "SHORT and sweet weekly overview in TWO parts: 1) A focused paragraph highlighting the strongest cosmic influence this week and what it means for them in accessible, relatable terms. 2) A personalized affirmation or empowering message for navigating the week ahead - something they can carry with them as cosmic guidance. Keep it warm, meaningful, and memorable - like a wise friend offering both insight and encouragement.",
+      "description": "Brief description of the cosmic influences (must reference their sun/moon/rising signs)",
+      "astrologicalSummary": "SHORT and sweet weekly overview in TWO parts that MUST begin by acknowledging their astrological profile: 1) Start with 'As a [Sun Sign] Sun with [Moon Sign] Moon and [Rising Sign] Rising...' then highlight the strongest cosmic influence this week and what it means for them personally in accessible, relatable terms. 2) A personalized affirmation or empowering message for navigating the week ahead - something they can carry with them as cosmic guidance. Keep it warm, meaningful, and memorable - like a wise friend offering both insight and encouragement.",
       "weekStart": "${formatDate(weekStart)}",
       "weekEnd": "${formatDate(weekEnd)}",
       "songs": [
