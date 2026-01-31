@@ -460,14 +460,14 @@ export default function Landing() {
               <p className="text-lg text-gray-600 mb-6">
                 Sign up to be the first to experience <span className="font-bold text-purple-700">Stardust + Nova</span> — where your stars go supernova.
               </p>
-              <Link href="/waitlist">
+              <a href="https://www.darkfoliopress.com/coming-soon-01" target="_blank" rel="noopener noreferrer">
                 <Button 
                   className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-lg px-8 py-6"
                   data-testid="button-waitlist"
                 >
                   ✨ Join the waitlist <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-              </Link>
+              </a>
             </CardContent>
           </Card>
         </div>
