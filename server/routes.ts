@@ -536,76 +536,6 @@ Each song is specifically chosen to align with the daily planetary energies you'
   });
 
   // Generate guest playlist without authentication (FREE VERSION ENDPOINT)
-  app.post("/api/generate-guest-playlist", async (req, res) => {
-    try {
-      const { email, newsletterPreference, birthDate, birthTime, birthLocation } = req.body;
-      
-      if (!email || !birthDate || !birthTime || !birthLocation) {
-        return res.status(400).json({ error: "Email and birth information required" });
-      }
-
-      // 🧪 TESTING MODE: Temporarily disable guest rate limiting to test planetary frequency detection
-      const TESTING_MODE = true;
-      if (!TESTING_MODE) {
-        const canGenerate = await storage.canGuestGenerate(email);
-        if (!canGenerate) {
-          return res.status(429).json({ 
-            error: "You can only generate one playlist per week. Upgrade to Premium for unlimited playlists!" 
-          });
-        }
-      } else {
-        console.log('🧪 TESTING MODE: Bypassing guest rate limiting for planetary frequency testing');
-      }
-
-      // Generate playlist using AI service
-      const playlistData = await openAIService.generatePlaylist({
-        date: birthDate,
-        time: birthTime,
-        location: birthLocation,
-      }, null); // No music profile for guest users
-
-      // Update rate limiting timestamp
-      await storage.touchGuestPlaylistGenerated(email);
-
-      // Auto-export to Sonifyr's Spotify account for Quick Cosmic Experience
-      let spotifyPlaylistUrl = null;
-      try {
-        console.log('Auto-exporting guest playlist to Sonifyr account...');
-        const spotifyPlaylist = await spotifyService.createServicePlaylist(
-          playlistData.name,
-          playlistData.description,
-          playlistData.songs
-        );
-        spotifyPlaylistUrl = spotifyPlaylist.external_urls.spotify;
-        console.log('Guest playlist auto-exported successfully:', spotifyPlaylistUrl);
-      } catch (spotifyError) {
-        console.error('Failed to auto-export guest playlist to Spotify:', spotifyError);
-        // Don't fail the whole operation if Spotify export fails
-      }
-
-      // Send welcome email with playlist report
-      try {
-        const { sendEmail, createWelcomeEmail } = await import('./services/email');
-        const emailParams = createWelcomeEmail(email, playlistData, newsletterPreference || 'playlist-only');
-        await sendEmail(emailParams);
-        console.log(`Welcome email sent to ${email} with preference: ${newsletterPreference}`);
-      } catch (emailError) {
-        console.error('Failed to send welcome email:', emailError);
-        // Don't fail the playlist generation if email fails
-      }
-
-      // Return the playlist data with Spotify URL for auto-opening
-      res.json({
-        ...playlistData,
-        spotifyPlaylistUrl, // Include the Spotify URL for Quick Cosmic Experience
-        autoExported: !!spotifyPlaylistUrl // Flag to indicate if auto-export succeeded
-      });
-    } catch (error) {
-      console.error("Error generating guest playlist:", error);
-      res.status(500).json({ error: "Failed to generate playlist" });
-    }
-  });
-
   // Get weekly horoscope with daily breakdowns (NEW ENDPOINT)
   app.post("/api/horoscope/:sessionId/weekly", requireCompleteProfile, async (req, res) => {
     try {
@@ -1415,63 +1345,46 @@ ${daily.horoscope}
   });
 
   // Generate personalized playlist using stored Spotify tokens
-  app.post('/api/generate-personalized-playlist', async (req, res) => {
+  app.post('/api/generate-playlist', requireAuth, async (req, res) => {
     try {
       const { birthDate, birthTime, birthLocation } = req.body;
+      const user = req.user as any;
       
       // Validate birth data
       if (!birthDate || !birthTime || !birthLocation) {
         return res.status(400).json({ error: 'Missing required birth data fields' });
       }
       
-      // Check for stored Spotify tokens
-      const tokens = (req.session as any)?.spotifyTokens;
-      if (!tokens || !tokens.access_token) {
-        return res.status(401).json({ error: 'Spotify not connected. Please connect your Spotify account first.' });
+      // Check for user's Spotify tokens
+      if (!user.spotifyAccessToken || !user.spotifyRefreshToken) {
+        return res.status(401).json({ error: 'Spotify not connected. Please sign in with Spotify first.' });
       }
       
-      console.log("\n=== GENERATING PERSONALIZED PLAYLIST WITH STORED TOKENS ===");
+      console.log("\n=== GENERATING PLAYLIST WITH USER SPOTIFY TOKENS ===");
+      console.log("User ID:", user.id);
       console.log("Birth data:", { birthDate, birthTime, birthLocation });
-      console.log("Tokens available:", !!tokens);
       console.log("=================================");
       
       // Check if token is expired and refresh if needed
-      const isExpired = tokens.expires_at && Date.now() >= tokens.expires_at;
-      let accessToken = tokens.access_token;
+      const isExpired = user.spotifyTokenExpires && new Date(user.spotifyTokenExpires) <= new Date();
+      let accessToken = user.spotifyAccessToken;
       
-      if (isExpired && tokens.refresh_token) {
+      if (isExpired && user.spotifyRefreshToken) {
         try {
           console.log("Token expired, refreshing...");
-          const refreshed = await spotifyService.refreshAccessToken(tokens.refresh_token);
+          const refreshed = await spotifyService.refreshAccessToken(user.spotifyRefreshToken);
           accessToken = refreshed.access_token;
           
-          // Update session with new token
-          (req.session as any).spotifyTokens = {
-            access_token: refreshed.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_at: Date.now() + refreshed.expires_in * 1000
-          };
-          
-          await new Promise<void>((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) reject(err);
-              else resolve();
-            });
+          // Update user with new token
+          await storage.updateUser(user.id, {
+            spotifyAccessToken: refreshed.access_token,
+            spotifyTokenExpires: new Date(Date.now() + refreshed.expires_in * 1000)
           });
           
           console.log("✓ Token refreshed successfully");
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          // Clear stale tokens
-          delete (req.session as any).spotifyTokens;
-          delete (req.session as any).spotifyUser;
-          await new Promise<void>((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          return res.status(401).json({ error: 'Spotify token expired. Please reconnect your Spotify account.' });
+          return res.status(401).json({ error: 'Spotify token expired. Please sign in with Spotify again.' });
         }
       }
       
@@ -1484,543 +1397,73 @@ ${daily.horoscope}
         date: birthDate,
         time: birthTime,
         location: birthLocation,
-      }, 'guest', accessToken, musicProfile);
+      }, user.id, accessToken, musicProfile);
       
       console.log("✓ Playlist generated:", playlistData.name);
       
-      // Store playlist in session
-      const spotifyUser = (req.session as any)?.spotifyUser;
-      const enhancedPlaylistData = {
-        ...playlistData,
-        spotifyConnected: true,
-        spotifyUser: spotifyUser || { display_name: 'Spotify User' }
-      };
-      
-      (req.session as any).guestPlaylist = enhancedPlaylistData;
-      
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error('Session save error:', err);
-            reject(err);
-          } else {
-            console.log('✅ Session saved with playlist data');
-            resolve();
-          }
-        });
-      });
-      
-      // Return playlist data with spotifyConnected flag
+      // Return playlist data
       res.json({
         success: true,
-        playlist: enhancedPlaylistData
+        playlist: {
+          ...playlistData,
+          spotifyConnected: true,
+          spotifyUser: { 
+            id: user.spotifyId,
+            display_name: user.firstName || user.username || 'Spotify User' 
+          }
+        }
       });
     } catch (error) {
-      console.error("Error generating personalized playlist:", error);
-      res.status(500).json({ error: "Failed to generate personalized playlist" });
+      console.error("Error generating playlist:", error);
+      res.status(500).json({ error: "Failed to generate playlist" });
     }
   });
 
   // Spotify Integration Routes
   
   // Start Spotify authentication
-  app.get('/api/spotify/auth', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const authUrl = spotifyService.getAuthUrl(userId);
-      console.log("\n=== SPOTIFY AUTH REQUEST ===");
-      console.log("User ID:", userId);
-      console.log("Full auth URL:", authUrl);
-      console.log("Redirect URI that MUST be in your Spotify app settings:");
-      console.log(`https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/spotify/callback`);
-      console.log("===============================");
-      res.json({ authUrl });
-    } catch (error) {
-      console.error("Error getting Spotify auth URL:", error);
-      res.status(500).json({ error: "Failed to get Spotify auth URL" });
-    }
-  });
+  // Spotify OAuth callback (now handled in auth.ts)
+  // Note: This endpoint has been moved to server/auth.ts as part of Spotify-only authentication
 
-  // Guest Spotify authentication (no login required)
-  app.get('/api/spotify/guest-auth', async (req, res) => {
+  // Check Spotify connection status (now checks user's database tokens)
+  app.get('/api/spotify/status', requireAuth, async (req, res) => {
     try {
-      // Generate a temporary guest ID for the auth state
-      const guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      const authUrl = spotifyService.getAuthUrl(guestId);
+      const user = req.user as any;
       
-      console.log("\n=== GUEST SPOTIFY AUTH REQUEST ===");
-      console.log("Guest ID:", guestId);
-      console.log("Auth URL:", authUrl);
-      console.log("===============================");
-      
-      res.json({ authUrl, guestId });
-    } catch (error) {
-      console.error("Error getting guest Spotify auth URL:", error);
-      res.status(500).json({ error: "Failed to get Spotify auth URL" });
-    }
-  });
-
-  // Simple Spotify connect (upfront authentication)
-  app.get('/api/spotify/connect', async (req, res) => {
-    try {
-      // Create a simple state for connection-only auth
-      const connectState = `connect_${Date.now()}`;
-      const authUrl = spotifyService.getAuthUrl(connectState);
-      
-      console.log("\n=== SPOTIFY CONNECT REQUEST ===");
-      console.log("Auth URL:", authUrl);
-      console.log("===============================");
-      
-      // Redirect to Spotify OAuth
-      res.redirect(authUrl);
-    } catch (error) {
-      console.error("Error getting Spotify connect URL:", error);
-      res.status(500).json({ error: "Failed to get Spotify auth URL" });
-    }
-  });
-
-  // Check Spotify connection status
-  app.get('/api/spotify/status', async (req, res) => {
-    try {
-      const tokens = (req.session as any)?.spotifyTokens;
-      const spotifyUser = (req.session as any)?.spotifyUser;
-      
-      if (!tokens || !tokens.access_token) {
+      if (!user.spotifyAccessToken || !user.spotifyRefreshToken) {
         return res.json({ connected: false });
       }
       
       // Check if token is expired
-      const isExpired = tokens.expires_at && Date.now() >= tokens.expires_at;
+      const isExpired = user.spotifyTokenExpires && new Date(user.spotifyTokenExpires) <= new Date();
       
-      if (isExpired && tokens.refresh_token) {
+      if (isExpired && user.spotifyRefreshToken) {
         try {
           // Refresh the token
-          const refreshed = await spotifyService.refreshAccessToken(tokens.refresh_token);
-          (req.session as any).spotifyTokens = {
-            access_token: refreshed.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_at: Date.now() + refreshed.expires_in * 1000
-          };
-          
-          await new Promise<void>((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) reject(err);
-              else resolve();
-            });
+          const refreshed = await spotifyService.refreshAccessToken(user.spotifyRefreshToken);
+          await storage.updateUser(user.id, {
+            spotifyAccessToken: refreshed.access_token,
+            spotifyRefreshToken: user.spotifyRefreshToken,
+            spotifyTokenExpires: new Date(Date.now() + refreshed.expires_in * 1000)
           });
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          // Clear stale tokens from session to allow clean reconnection
-          delete (req.session as any).spotifyTokens;
-          delete (req.session as any).spotifyUser;
-          
-          await new Promise<void>((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          
           return res.json({ connected: false });
         }
       }
       
       return res.json({
         connected: true,
-        user: spotifyUser || { display_name: 'Spotify User' }
+        user: { 
+          id: user.spotifyId,
+          display_name: user.firstName || user.username || 'Spotify User' 
+        }
       });
     } catch (error) {
       console.error("Error checking Spotify status:", error);
       res.status(500).json({ error: "Failed to check connection status" });
     }
   });
-
-  // Personalized Spotify authentication (with birth data)
-  app.get('/api/spotify/personalized-auth', async (req, res) => {
-    try {
-      const { state } = req.query;
-      
-      if (!state) {
-        return res.status(400).json({ error: "Birth data state required" });
-      }
-      
-      // Parse birth data from state (base64url decoded)
-      let birthData;
-      try {
-        // Convert base64url back to base64
-        const base64State = (state as string).replace(/-/g, '+').replace(/_/g, '/');
-        // Add padding if needed
-        const paddedState = base64State + '='.repeat((4 - base64State.length % 4) % 4);
-        const decodedState = Buffer.from(paddedState, 'base64').toString('utf-8');
-        birthData = JSON.parse(decodedState);
-      } catch (error) {
-        console.error("Error parsing birth data state:", error, "State:", state);
-        return res.status(400).json({ error: "Invalid birth data state" });
-      }
-      
-      // Validate required fields (email not required for personalized path - collected later)
-      if (!birthData.birthDate || !birthData.birthTime || !birthData.birthLocation) {
-        return res.status(400).json({ error: "Missing required birth data fields" });
-      }
-      
-      // Create state for OAuth that includes birth data (URL encode to handle special characters)
-      const oauthState = `personalized_${Date.now()}_${encodeURIComponent(JSON.stringify(birthData))}`;
-      const authUrl = spotifyService.getAuthUrl(oauthState);
-      
-      console.log("\n=== PERSONALIZED SPOTIFY AUTH REQUEST ===");
-      console.log("Birth data:", {
-        email: birthData.email || "not provided yet",
-        birthDate: birthData.birthDate,
-        birthTime: birthData.birthTime,
-        birthLocation: birthData.birthLocation
-      });
-      console.log("Auth URL:", authUrl);
-      console.log("===============================");
-      
-      // Redirect directly to Spotify (since this is called from window.location.href)
-      res.redirect(authUrl);
-    } catch (error) {
-      console.error("Error getting personalized Spotify auth URL:", error);
-      res.status(500).json({ error: "Failed to get Spotify auth URL" });
-    }
-  });
-
-  // Spotify OAuth callback
-  app.get('/api/spotify/callback', async (req, res) => {
-    try {
-      const { code, state, error } = req.query;
-      
-      console.log("\n=== SPOTIFY CALLBACK RECEIVED ===");
-      console.log("Code received:", !!code);
-      console.log("State:", state);
-      console.log("Error:", error || "none");
-      console.log("=================================");
-      
-      if (error) {
-        console.error("Spotify OAuth error:", error);
-        return res.redirect('/?spotify=error&reason=' + encodeURIComponent(error as string));
-      }
-      
-      if (!code || !state) {
-        console.error("Missing parameters in Spotify callback:", { code: !!code, state: !!state });
-        return res.status(400).json({ error: "Missing code or state parameter" });
-      }
-
-      // Exchange code for tokens
-      const tokens = await spotifyService.exchangeCodeForToken(code as string);
-      
-      // Get user's Spotify profile
-      const spotifyUser = await spotifyService.getUserProfile(tokens.access_token);
-      
-      // Check if this is a simple connect (upfront auth without birth data)
-      const isConnect = (state as string).startsWith('connect_');
-      
-      if (isConnect) {
-        console.log("\n=== SPOTIFY CONNECTION SUCCESSFUL ===");
-        console.log("Spotify user:", spotifyUser.display_name);
-        console.log("=================================");
-        
-        // Store tokens in session
-        if (req.session) {
-          (req.session as any).spotifyTokens = {
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_at: Date.now() + tokens.expires_in * 1000
-          };
-          (req.session as any).spotifyUser = {
-            id: spotifyUser.id,
-            display_name: spotifyUser.display_name
-          };
-          
-          // Save session before redirect
-          await new Promise<void>((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) {
-                console.error('Session save error:', err);
-                reject(err);
-              } else {
-                console.log('✅ Session saved with Spotify connection');
-                resolve();
-              }
-            });
-          });
-        }
-        
-        // Redirect back to landing page with success indicator
-        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-        const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-        const redirectUrl = `${baseUrl}/?spotify=connected`;
-        
-        return res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Connected to Spotify!</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              body {
-                margin: 0;
-                padding: 0;
-                font-family: system-ui, -apple-system, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                color: white;
-              }
-              .container {
-                text-align: center;
-                padding: 2rem;
-              }
-              .checkmark {
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
-                background: rgba(255,255,255,0.2);
-                margin: 0 auto 1.5rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 3rem;
-              }
-              h1 {
-                font-size: 1.8rem;
-                margin: 0 0 0.5rem;
-              }
-              p {
-                font-size: 1rem;
-                opacity: 0.9;
-                margin: 0;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="checkmark">✓</div>
-              <h1>🎵 Spotify Connected!</h1>
-              <p>Redirecting you back...</p>
-            </div>
-            <script>
-              // Redirect after a brief moment
-              setTimeout(() => {
-                window.location.href = '${redirectUrl}';
-              }, 1500);
-            </script>
-          </body>
-          </html>
-        `);
-      }
-      
-      // Check if this is a personalized auth (contains birth data)
-      const isPersonalized = (state as string).startsWith('personalized_');
-      
-      if (isPersonalized) {
-        // Extract birth data from state
-        const stateData = (state as string).substring('personalized_'.length);
-        const timestampEndIndex = stateData.indexOf('_');
-        const birthDataString = stateData.substring(timestampEndIndex + 1);
-        
-        let birthData;
-        try {
-          // URL decode the birth data string first
-          const decodedBirthDataString = decodeURIComponent(birthDataString);
-          birthData = JSON.parse(decodedBirthDataString);
-        } catch (error) {
-          console.error("Error parsing birth data from state:", error, "Raw state:", state);
-          return res.redirect('/?spotify=error&reason=invalid_birth_data');
-        }
-        
-        console.log("\n=== PERSONALIZED PLAYLIST GENERATION ===");
-        console.log("Birth data:", {
-          email: birthData.email,
-          birthDate: birthData.birthDate,
-          birthTime: birthData.birthTime,
-          birthLocation: birthData.birthLocation
-        });
-        console.log("Spotify user:", spotifyUser.display_name);
-        console.log("===============================");
-        
-        try {
-          // Get user's music profile
-          const musicProfile = await spotifyService.getUserMusicProfile(tokens.access_token);
-          
-          // Generate personalized playlist with Spotify integration
-          const playlistData = await openAIService.generatePersonalizedPlaylist({
-            date: birthData.birthDate,
-            time: birthData.birthTime,
-            location: birthData.birthLocation,
-          }, 'guest', tokens.access_token, musicProfile);
-          
-          // Handle email sending if requested (will be handled in the OpenAI service)
-          // Newsletter signup is handled in the existing guest playlist route
-          
-          // Store tokens and playlist in session
-          if (req.session) {
-            (req.session as any).spotifyTokens = {
-              access_token: tokens.access_token,
-              refresh_token: tokens.refresh_token,
-              expires_at: Date.now() + tokens.expires_in * 1000
-            };
-            (req.session as any).spotifyUser = {
-              id: spotifyUser.id,
-              display_name: spotifyUser.display_name
-            };
-            (req.session as any).guestPlaylist = {
-              ...playlistData,
-              spotifyConnected: true,
-              spotifyUser: {
-                id: spotifyUser.id,
-                display_name: spotifyUser.display_name
-              }
-            };
-            
-            // Save session before redirect
-            await new Promise<void>((resolve, reject) => {
-              req.session.save((err) => {
-                if (err) {
-                  console.error('Session save error:', err);
-                  reject(err);
-                } else {
-                  console.log('✅ Session saved successfully with playlist data');
-                  resolve();
-                }
-              });
-            });
-          }
-          
-          // Send HTML page with client-side redirect for better mobile experience
-          const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-          const baseUrl = domain.includes('localhost') ? `http://${domain}` : `https://${domain}`;
-          const redirectUrl = `${baseUrl}/playlist-result?personalized=true`;
-          console.log('🔄 Redirecting to:', redirectUrl);
-          
-          return res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Generating Your Cosmic Playlist...</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body {
-                  margin: 0;
-                  padding: 0;
-                  font-family: system-ui, -apple-system, sans-serif;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                  color: white;
-                }
-                .container {
-                  text-align: center;
-                  padding: 2rem;
-                }
-                .spinner {
-                  width: 60px;
-                  height: 60px;
-                  border: 4px solid rgba(255, 255, 255, 0.3);
-                  border-top-color: white;
-                  border-radius: 50%;
-                  animation: spin 1s linear infinite;
-                  margin: 0 auto 1.5rem;
-                }
-                @keyframes spin {
-                  to { transform: rotate(360deg); }
-                }
-                h1 {
-                  font-size: 1.5rem;
-                  margin: 0 0 0.5rem;
-                }
-                p {
-                  font-size: 1rem;
-                  opacity: 0.9;
-                  margin: 0;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="spinner"></div>
-                <h1>✨ Consulting the stars...</h1>
-                <p>Generating your personalized cosmic playlist</p>
-              </div>
-              <script>
-                // Redirect immediately
-                window.location.href = '${redirectUrl}';
-              </script>
-            </body>
-            </html>
-          `);
-        } catch (error) {
-          console.error("Error generating personalized playlist:", error);
-          return res.redirect('/?spotify=error&reason=playlist_generation_failed');
-        }
-      }
-      
-      // Handle regular authentication flow
-      const userId = state as string;
-      const isGuest = userId.startsWith('guest_');
-      
-      if (isGuest) {
-        // For guest users, return auth data via a special page that communicates with parent window
-        const authData = {
-          spotifyId: spotifyUser.id,
-          spotifyAccessToken: tokens.access_token,
-          spotifyRefreshToken: tokens.refresh_token,
-          spotifyTokenExpires: new Date(Date.now() + tokens.expires_in * 1000),
-          displayName: spotifyUser.display_name
-        };
-        
-        // Return a page that sends auth data to parent window and closes popup
-        res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Spotify Connected</title>
-          </head>
-          <body>
-            <script>
-              try {
-                // Send auth data to parent window
-                window.opener.sessionStorage.setItem('spotifyAuthSuccess', ${JSON.stringify(JSON.stringify(authData))});
-                window.close();
-              } catch (error) {
-                console.error('Error communicating with parent window:', error);
-                document.body.innerHTML = '<h2>✅ Spotify Connected!</h2><p>You can close this window and return to the main page.</p>';
-              }
-            </script>
-            <h2>✅ Spotify Connected!</h2>
-            <p>You can close this window and return to the main page.</p>
-          </body>
-          </html>
-        `);
-        return;
-      }
-      
-      // For authenticated users, get music profile and save to database
-      const musicProfile = await spotifyService.getUserMusicProfile(tokens.access_token);
-      
-      // Save Spotify data to user
-      await storage.updateUserSpotify(userId as string, {
-        spotifyId: spotifyUser.id,
-        spotifyAccessToken: tokens.access_token,
-        spotifyRefreshToken: tokens.refresh_token,
-        spotifyTokenExpires: new Date(Date.now() + tokens.expires_in * 1000),
-        musicProfile: musicProfile,
-      });
-
-      // Redirect back to the app with success
-      const redirectUrl = req.get('referer') || '/';
-      res.redirect(`${redirectUrl}?spotify=connected`);
-    } catch (error) {
-      console.error("Error in Spotify callback:", error);
-      res.redirect('/?spotify=error');
-    }
-  });
-
-  // Get user's Spotify connection status
   // Get session playlist data (for personalized Spotify flow)
   app.get('/api/session/playlist', async (req, res) => {
     try {
@@ -2038,53 +1481,6 @@ ${daily.horoscope}
     } catch (error) {
       console.error('Error retrieving session playlist:', error);
       res.status(500).json({ error: 'Failed to retrieve playlist' });
-    }
-  });
-
-  app.get('/api/spotify/status', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      let user = await storage.getUser(userId);
-      
-      let isConnected = !!(user?.spotifyAccessToken && user?.spotifyTokenExpires && user.spotifyTokenExpires > new Date());
-      
-      // If token is expired but we have a refresh token, try to refresh it
-      if (!isConnected && user?.spotifyRefreshToken && user?.spotifyAccessToken) {
-        try {
-          console.log("Spotify token expired, attempting refresh for user:", userId);
-          const refreshed = await spotifyService.refreshAccessToken(user.spotifyRefreshToken);
-          
-          await storage.updateUserSpotify(userId, {
-            spotifyAccessToken: refreshed.access_token,
-            spotifyTokenExpires: new Date(Date.now() + refreshed.expires_in * 1000),
-          });
-          
-          // Update user object and connection status
-          user = await storage.getUser(userId);
-          isConnected = true;
-          console.log("Spotify token successfully refreshed for user:", userId);
-        } catch (refreshError) {
-          console.error("Failed to refresh Spotify token:", refreshError);
-          // Token refresh failed, user needs to reconnect
-        }
-      }
-      
-      console.log("Spotify status check:", {
-        userId,
-        isConnected,
-        hasSpotifyId: !!user?.spotifyId,
-        hasMusicProfile: !!user?.musicProfile,
-        musicProfileStructure: user?.musicProfile ? Object.keys(user.musicProfile) : null
-      });
-      
-      res.json({
-        connected: isConnected,
-        spotifyId: user?.spotifyId,
-        musicProfile: (user as any)?.musicProfile?.musicProfile || null,
-      });
-    } catch (error) {
-      console.error("Error checking Spotify status:", error);
-      res.status(500).json({ error: "Failed to check Spotify status" });
     }
   });
 
