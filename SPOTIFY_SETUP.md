@@ -68,8 +68,7 @@ This is where you add the URIs mentioned in the question!
 
 4. **Add the second URI:**
    - Click in the text field again
-   - Paste: `https://your-domain.com/api/auth/spotify/callback`
-   - **Replace `your-domain.com` with your actual domain**
+   - Paste: `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
    - Click the **"Add"** button
    - ✅ You should now see BOTH URIs in the list
 
@@ -78,7 +77,7 @@ This is where you add the URIs mentioned in the question!
 **Your Redirect URIs section should now show:**
 ```
 ✅ http://localhost:5000/api/auth/spotify/callback
-✅ https://your-domain.com/api/auth/spotify/callback
+✅ https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
 ```
 
 ---
@@ -93,7 +92,7 @@ SPOTIFY_CLIENT_ID=abc123def456...  # Your actual Client ID
 SPOTIFY_CLIENT_SECRET=xyz789abc123...  # Your actual Client Secret
 
 # Your deployment domain (no http://)
-REPLIT_DOMAINS=your-domain.com
+REPLIT_DOMAINS=sonifyr.darkfoliopress.com
 ```
 
 ---
@@ -148,7 +147,7 @@ Deploy your app, then visit your production domain and test the Spotify login.
 **Fix**:
 1. Go back to Spotify Developer Dashboard
 2. Edit Settings
-3. Add your production domain URI: `https://your-domain.com/api/auth/spotify/callback`
+3. Add your production domain URI: `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
 4. Click Save
 
 ---
@@ -160,7 +159,7 @@ Deploy your app, then visit your production domain and test the Spotify login.
 - Location: Your App → Edit Settings → Redirect URIs section
 - URIs to add:
   - `http://localhost:5000/api/auth/spotify/callback`
-  - `https://your-domain.com/api/auth/spotify/callback`
+  - `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
 
 **They are NOT added to:**
 - ❌ Your `.env` file

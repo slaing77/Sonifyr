@@ -39,14 +39,13 @@ AI-powered personalized music playlists based on your astrological chart and mus
    - Add BOTH of these URIs (click "Add" after each):
      ```
      http://localhost:5000/api/auth/spotify/callback
-     https://your-actual-domain.com/api/auth/spotify/callback
+     https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
      ```
-   - **Replace `your-actual-domain.com` with your production domain**
    - Click "Save" at the bottom
    
    **Why both?**
    - `localhost:5000` - For local development
-   - `your-domain.com` - For production deployment
+   - `sonifyr.darkfoliopress.com` - For production deployment
 
 ### 2. Environment Setup
 
@@ -84,7 +83,7 @@ AI-powered personalized music playlists based on your astrological chart and mus
 
    # Deployment Domain
    REPLIT_DOMAINS=localhost:5000  # For local dev
-   # REPLIT_DOMAINS=your-domain.com  # For production
+   # REPLIT_DOMAINS=sonifyr.darkfoliopress.com  # For production
    ```
 
 ### 3. Database Setup
@@ -150,7 +149,7 @@ This means the redirect URI in your Spotify app doesn't match the one your app i
 1. Check your Spotify app's redirect URIs in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Make sure you have **BOTH** URIs added:
    - `http://localhost:5000/api/auth/spotify/callback` (for development)
-   - `https://your-domain.com/api/auth/spotify/callback` (for production)
+   - `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback` (for production)
 3. Make sure there are no typos or extra slashes
 4. Click "Save" in the Spotify dashboard
 

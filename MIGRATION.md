@@ -79,9 +79,9 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
      http://localhost:5000/api/auth/spotify/callback
      ```
    - Click the "Add" button next to the field
-   - Now add your production URI (replace with your actual domain):
+   - Now add your production URI:
      ```
-     https://your-domain.com/api/auth/spotify/callback
+     https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
      ```
    - Click "Add" again
    - **You should now see BOTH URIs listed**
