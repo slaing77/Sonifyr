@@ -56,14 +56,10 @@ export class SpotifyService {
   constructor() {
     this.clientId = process.env.SPOTIFY_CLIENT_ID!;
     this.clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
     
-    // Use http:// for localhost, https:// for production
-    if (domain && domain.includes('localhost')) {
-      this.redirectUri = `http://${domain}/api/auth/spotify/callback`;
-    } else {
-      this.redirectUri = `https://${domain || 'localhost:5000'}/api/auth/spotify/callback`;
-    }
+    // Use HTTPS for all URIs (Spotify requires secure redirect URIs, including localhost)
+    this.redirectUri = `https://${domain}/api/auth/spotify/callback`;
     
     console.log("Spotify Service initialized with redirect URI:", this.redirectUri);
   }

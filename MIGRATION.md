@@ -76,7 +76,7 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
    - Scroll down to the "Redirect URIs" section
    - Click in the text field and paste this URI:
      ```
-     http://localhost:5000/api/auth/spotify/callback
+     https://localhost:5000/api/auth/spotify/callback
      ```
    - Click the "Add" button next to the field
    - Now add your production URI:
@@ -86,6 +86,8 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
    - Click "Add" again
    - **You should now see BOTH URIs listed**
    - Scroll to the bottom and click "Save"
+   
+   **Note:** Use `https://` (not `http://`) for localhost. Spotify requires secure URIs.
 
 5. **Copy your credentials to `.env`**
    - Copy the **Client ID** (shown on main app page)
@@ -100,14 +102,12 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
 - ❌ Don't add `http://` or `https://` to the REPLIT_DOMAINS variable (just the domain)
 - ❌ Don't forget the `/api/auth/spotify/callback` path in redirect URIs
 - ❌ Don't add redirect URIs to your `.env` file - they go in Spotify Dashboard only
-- ✅ Do add the production HTTPS URI - it always works
-- ⚠️ Localhost URI may be rejected by Spotify with "not secure" - this is normal
+- ❌ Don't use `http://` for localhost - use `https://` instead
+- ✅ Use `https://` for all redirect URIs (including localhost)
+- ✅ Your browser may show certificate warnings for https://localhost - this is normal
 
-**If Spotify rejects localhost:**
-Spotify's security policies may prevent adding `http://localhost` redirect URIs. This is normal. Solutions:
-1. Use production URL for all testing (recommended)
-2. Try `http://127.0.0.1:5000/api/auth/spotify/callback` instead
-3. Only use HTTPS URIs (production/staging servers)
+**About HTTPS Localhost:**
+Spotify requires HTTPS for redirect URIs. Use `https://localhost:5000/api/auth/spotify/callback` in the Spotify Dashboard. Your browser will show a certificate warning when accessing https://localhost:5000 - this is expected and can be bypassed during development.
 
 ### API Changes
 

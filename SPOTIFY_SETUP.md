@@ -60,35 +60,29 @@ This is where you add the URIs mentioned in the question!
 
 2. **Scroll down** to find the "Redirect URIs" section
 
-3. **Add your production URI (this always works):**
+3. **Add your production URI:**
    - Click in the text field
    - Paste: `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
    - Click the **"Add"** button
    - ✅ You should see it appear in the list below
 
-4. **Try adding localhost (may be rejected by Spotify):**
+4. **Add localhost URI (use HTTPS, not HTTP):**
    - Click in the text field
-   - Paste: `http://localhost:5000/api/auth/spotify/callback`
+   - Paste: `https://localhost:5000/api/auth/spotify/callback`
    - Click the **"Add"** button
+   - ✅ You should see it added successfully
    
-   **If you get "This redirect URI is not secure" error:**
-   - This is normal - Spotify has restricted localhost for security
-   - Try this alternative: `http://127.0.0.1:5000/api/auth/spotify/callback`
-   - Or skip localhost entirely and test with production URL only
-   - See the troubleshooting section below
+   **✅ KEY TIP:** Use `https://` (not `http://`) for localhost. Spotify requires secure URIs.
 
 5. **Scroll to bottom and click "Save"**
 
-**Your Redirect URIs section should ideally show:**
+**Your Redirect URIs section should show:**
 ```
-✅ https://sonifyr.darkfoliopress.com/api/auth/spotify/callback (Required)
-✅ http://localhost:5000/api/auth/spotify/callback (Optional - may not work)
+✅ https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
+✅ https://localhost:5000/api/auth/spotify/callback
 ```
 
-**OR if localhost is rejected:**
-```
-✅ https://sonifyr.darkfoliopress.com/api/auth/spotify/callback (Production - this is sufficient!)
-```
+**Note:** Your browser may show a certificate warning when accessing `https://localhost:5000` - this is normal for local HTTPS development and can be bypassed.
 
 ---
 
@@ -133,23 +127,26 @@ Deploy your app, then visit your production domain and test the Spotify login.
 
 ### Error: "This redirect URI is not secure" (when adding localhost)
 
-**This is the exact error you're experiencing!**
+**✅ SOLUTION: Use HTTPS for localhost!**
 
-**What it means:**
-Spotify has security policies that restrict `http://` redirect URIs. Recently, they've become stricter about allowing `http://localhost` URIs, especially for certain apps or quota levels.
+If you get this error when trying to add `http://localhost:5000/api/auth/spotify/callback`, the fix is simple:
 
-**Why the production URL works:**
-The production URL (`https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`) uses HTTPS, which Spotify always accepts because it's secure.
+**Use HTTPS instead of HTTP:**
+```
+https://localhost:5000/api/auth/spotify/callback
+```
 
-**Solutions:**
+Add this in your Spotify Developer Dashboard and it will be accepted.
 
-1. **✅ RECOMMENDED: Use production URL only**
-   - Only add: `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
-   - Skip adding localhost entirely
-   - Test your OAuth flow on your production/staging server
-   - This is the most reliable approach
+**Why this works:**
+- Spotify requires secure (HTTPS) redirect URIs for security
+- They now accept `https://localhost` for development purposes
+- This is the simplest and most reliable solution
 
-2. **Try 127.0.0.1 instead:**
+**About the certificate warning:**
+When you access `https://localhost:5000` in your browser, you may see a security/certificate warning. This is normal because localhost doesn't have a real SSL certificate. You can safely bypass this warning during development (click "Advanced" → "Proceed anyway" or similar).
+
+### Alternative Solutions (if HTTPS localhost doesn't work for you):
    ```
    http://127.0.0.1:5000/api/auth/spotify/callback
    ```

@@ -46,9 +46,8 @@ export function setupAuth(app: Express) {
   }
 
   const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-  const callbackURL = domain.includes('localhost') 
-    ? `http://${domain}/api/auth/spotify/callback`
-    : `https://${domain}/api/auth/spotify/callback`;
+  // Use HTTPS for all URIs (Spotify requires secure redirect URIs, including localhost)
+  const callbackURL = `https://${domain}/api/auth/spotify/callback`;
   
   console.log('Spotify OAuth Callback URL:', callbackURL);
   
