@@ -47,6 +47,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserBySpotifyId(spotifyId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -149,6 +150,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserBySpotifyId(spotifyId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.spotifyId, spotifyId));
     return user;
   }
 
@@ -935,6 +941,13 @@ export class MemStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     for (const user of Array.from(this.users.values())) {
       if (user.username === username) return user;
+    }
+    return undefined;
+  }
+
+  async getUserBySpotifyId(spotifyId: string): Promise<User | undefined> {
+    for (const user of Array.from(this.users.values())) {
+      if (user.spotifyId === spotifyId) return user;
     }
     return undefined;
   }
