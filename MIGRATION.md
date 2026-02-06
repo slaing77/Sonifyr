@@ -100,7 +100,14 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
 - ❌ Don't add `http://` or `https://` to the REPLIT_DOMAINS variable (just the domain)
 - ❌ Don't forget the `/api/auth/spotify/callback` path in redirect URIs
 - ❌ Don't add redirect URIs to your `.env` file - they go in Spotify Dashboard only
-- ✅ Do add BOTH localhost and production URIs for seamless development and deployment
+- ✅ Do add the production HTTPS URI - it always works
+- ⚠️ Localhost URI may be rejected by Spotify with "not secure" - this is normal
+
+**If Spotify rejects localhost:**
+Spotify's security policies may prevent adding `http://localhost` redirect URIs. This is normal. Solutions:
+1. Use production URL for all testing (recommended)
+2. Try `http://127.0.0.1:5000/api/auth/spotify/callback` instead
+3. Only use HTTPS URIs (production/staging servers)
 
 ### API Changes
 

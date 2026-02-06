@@ -36,16 +36,31 @@ AI-powered personalized music playlists based on your astrological chart and mus
 4. **⭐ ADD REDIRECT URIs (IMPORTANT) ⭐**
    - In your app's dashboard, click "Edit Settings"
    - Scroll down to "Redirect URIs" section
-   - Add BOTH of these URIs (click "Add" after each):
+   - **First, add your production URI (always works):**
      ```
-     http://localhost:5000/api/auth/spotify/callback
      https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
      ```
+     Click "Add"
+   - **Optionally, try adding localhost (may be rejected):**
+     ```
+     http://localhost:5000/api/auth/spotify/callback
+     ```
+     OR try with IP address:
+     ```
+     http://127.0.0.1:5000/api/auth/spotify/callback
+     ```
+     Click "Add"
+   
    - Click "Save" at the bottom
    
+   **⚠️ Note:** Spotify may reject localhost URIs with "This redirect URI is not secure" due to security policies. If this happens:
+   - This is normal and expected for some Spotify apps
+   - You can still develop and test using the production URL
+   - See "Troubleshooting" section below for alternatives
+   
    **Why both?**
-   - `localhost:5000` - For local development
-   - `sonifyr.darkfoliopress.com` - For production deployment
+   - Production URI: `sonifyr.darkfoliopress.com` - **Required** for deployment
+   - Localhost URI: Development testing - **Optional** (may not work)
 
 ### 2. Environment Setup
 
@@ -140,6 +155,40 @@ npm run build
 - [.env.example](./.env.example) - Environment variable reference
 
 ## 🔧 Troubleshooting
+
+### "This redirect URI is not secure" Error (Spotify Dashboard)
+
+If Spotify rejects your `http://localhost:5000/api/auth/spotify/callback` URI with a security error, this is due to Spotify's security policies that have become stricter.
+
+**Solutions (in order of preference):**
+
+1. **Try `127.0.0.1` instead of `localhost`:**
+   ```
+   http://127.0.0.1:5000/api/auth/spotify/callback
+   ```
+   Some Spotify apps accept this format better.
+
+2. **Use a different port:**
+   ```
+   http://localhost:3000/api/auth/spotify/callback
+   ```
+   Then update your app to run on port 3000.
+
+3. **Skip localhost development:**
+   - Only add the production URI: `https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`
+   - Test authentication directly on your production/staging server
+   - This is the most reliable approach for Spotify OAuth
+
+4. **Check Spotify App Settings:**
+   - Some Spotify apps may have restricted localhost access
+   - This is often related to app quotas or verification status
+   - Production HTTPS URIs are always accepted
+
+**Why this happens:**
+Spotify has tightened security around redirect URIs. While they traditionally allowed `http://localhost` for development, some apps now require HTTPS even for local development, or may reject localhost entirely depending on your app's settings and quota extension status.
+
+**Recommended approach:**
+Use the production URL (`https://sonifyr.darkfoliopress.com/api/auth/spotify/callback`) for all testing. Deploy your changes to production/staging and test there.
 
 ### "Spotify OAuth Error" or "Invalid redirect_uri"
 

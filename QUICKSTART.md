@@ -9,17 +9,24 @@ https://sonifyr.darkfoliopress.com/
 
 Go to: **https://developer.spotify.com/dashboard**
 
-### Add These Exact URIs:
+### Add These URIs (in order of importance):
 
-1. **Development:**
-   ```
-   http://localhost:5000/api/auth/spotify/callback
-   ```
-
-2. **Production:**
+1. **Production (REQUIRED - Always works):**
    ```
    https://sonifyr.darkfoliopress.com/api/auth/spotify/callback
    ```
+
+2. **Development (OPTIONAL - May be rejected by Spotify):**
+   ```
+   http://localhost:5000/api/auth/spotify/callback
+   ```
+   
+   **If Spotify rejects localhost with "This redirect URI is not secure":**
+   - This is normal and expected
+   - Try: `http://127.0.0.1:5000/api/auth/spotify/callback` instead
+   - OR skip localhost and test with production URL only (recommended)
+   
+   **Why?** Spotify has security policies that may reject `http://` URIs, even for localhost. The production HTTPS URI always works.
 
 ## Environment Variables (.env file)
 
