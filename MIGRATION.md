@@ -55,12 +55,52 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
 
 ### Spotify Developer Dashboard Setup
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app (or use existing)
-3. Add **both** of the following Redirect URIs (add both for development and production):
-   - Production: `https://your-domain.com/api/auth/spotify/callback`
-   - Local Development: `http://localhost:5000/api/auth/spotify/callback`
-4. Copy the Client ID and Client Secret to your `.env` file
+⚠️ **IMPORTANT**: These redirect URIs are configured in the **Spotify Developer Dashboard**, not in your code or `.env` file.
+
+**Step-by-Step Instructions:**
+
+1. **Go to Spotify Developer Dashboard**
+   - URL: https://developer.spotify.com/dashboard
+   - Log in with your Spotify account
+
+2. **Create a new app** (or select your existing Sonifyr app)
+   - Click "Create app" if creating new
+   - Give it a name and description
+   - Accept terms and click Save
+
+3. **Open your app's settings**
+   - Click on your app name in the dashboard
+   - Click "Edit Settings" button (top right)
+
+4. **⭐ Add Redirect URIs ⭐**
+   - Scroll down to the "Redirect URIs" section
+   - Click in the text field and paste this URI:
+     ```
+     http://localhost:5000/api/auth/spotify/callback
+     ```
+   - Click the "Add" button next to the field
+   - Now add your production URI (replace with your actual domain):
+     ```
+     https://your-domain.com/api/auth/spotify/callback
+     ```
+   - Click "Add" again
+   - **You should now see BOTH URIs listed**
+   - Scroll to the bottom and click "Save"
+
+5. **Copy your credentials to `.env`**
+   - Copy the **Client ID** (shown on main app page)
+   - Click "View client secret" and copy the **Client Secret**
+   - Add both to your `.env` file:
+     ```
+     SPOTIFY_CLIENT_ID=your_client_id_here
+     SPOTIFY_CLIENT_SECRET=your_client_secret_here
+     ```
+
+**Common Mistakes to Avoid:**
+- ❌ Don't add `http://` or `https://` to the REPLIT_DOMAINS variable (just the domain)
+- ❌ Don't forget the `/api/auth/spotify/callback` path in redirect URIs
+- ❌ Don't add redirect URIs to your `.env` file - they go in Spotify Dashboard only
+- ✅ Do add BOTH localhost and production URIs for seamless development and deployment
 
 ### API Changes
 
