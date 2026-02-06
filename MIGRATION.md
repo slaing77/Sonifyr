@@ -57,9 +57,9 @@ SPOTIFY_SERVICE_REFRESH_TOKEN  # Service account no longer used
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app (or use existing)
-3. Add the following **Redirect URI**:
-   - `https://your-domain.com/api/auth/spotify/callback`
-   - For local dev: `http://localhost:5000/api/auth/spotify/callback`
+3. Add **both** of the following Redirect URIs (add both for development and production):
+   - Production: `https://your-domain.com/api/auth/spotify/callback`
+   - Local Development: `http://localhost:5000/api/auth/spotify/callback`
 4. Copy the Client ID and Client Secret to your `.env` file
 
 ### API Changes

@@ -1375,11 +1375,18 @@ ${daily.horoscope}
           const refreshed = await spotifyService.refreshAccessToken(user.spotifyRefreshToken);
           accessToken = refreshed.access_token;
           
-          // Update user with new token
-          await storage.updateUser(user.id, {
+          // Update user with new tokens (refresh token may or may not change)
+          const updateData: any = {
             spotifyAccessToken: refreshed.access_token,
             spotifyTokenExpires: new Date(Date.now() + refreshed.expires_in * 1000)
-          });
+          };
+          
+          // Only update refresh token if a new one was provided
+          if (refreshed.refresh_token) {
+            updateData.spotifyRefreshToken = refreshed.refresh_token;
+          }
+          
+          await storage.updateUser(user.id, updateData);
           
           console.log("✓ Token refreshed successfully");
         } catch (refreshError) {

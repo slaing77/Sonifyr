@@ -65,7 +65,7 @@ export function setupAuth(app: Express) {
           const email = profile.emails?.[0]?.value || profile._json?.email;
           
           if (!email) {
-            return done(new Error("Email not provided by Spotify"));
+            return done(new Error("Unable to get email from Spotify. Please ensure your Spotify account has a verified email address and try again."));
           }
 
           // Try to find existing user by Spotify ID or email
