@@ -11,11 +11,7 @@ import Landing from "@/pages/landing";
 import PlaylistResult from "@/pages/playlist-result";
 import UpgradePage from "@/pages/upgrade";
 import WaitlistPage from "@/pages/waitlist";
-import LoginPage from "@/pages/login";
-import SignupPage from "@/pages/signup";
 import ProfileSetupPage from "@/pages/profile-setup";
-import ForgotPasswordPage from "@/pages/forgot-password";
-import ResetPasswordPage from "@/pages/reset-password";
 import FeedbackAnalytics from "@/pages/feedback-analytics";
 import { MoodAnalysisPage } from "@/pages/mood-analysis";
 import NotFound from "@/pages/not-found";
@@ -35,19 +31,7 @@ function Router() {
   return (
     <AnimatePresence mode="wait">
       <Switch key={location}>
-        {/* Always accessible routes first */}
-        <Route path="/login">
-          <LoginPage />
-        </Route>
-        <Route path="/signup">
-          <SignupPage />
-        </Route>
-        <Route path="/forgot-password">
-          <ForgotPasswordPage />
-        </Route>
-        <Route path="/reset-password">
-          <ResetPasswordPage />
-        </Route>
+        {/* Always accessible routes */}
         <Route path="/profile-setup">
           <ProfileSetupPage />
         </Route>
@@ -85,21 +69,12 @@ function Router() {
           </>
         ) : (
           <>
-            {/* Guest routes */}
+            {/* Guest routes - show landing page with Spotify OAuth */}
             <Route path="/">
               <Landing />
             </Route>
             <Route path="/chat">
-              <LoginPage />
-            </Route>
-            <Route path="/playlist-result">
-              <PlaylistResult />
-            </Route>
-            <Route path="/upgrade">
-              <UpgradePage />
-            </Route>
-            <Route path="/waitlist">
-              <WaitlistPage />
+              <Landing />
             </Route>
           </>
         )}

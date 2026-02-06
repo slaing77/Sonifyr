@@ -15,29 +15,32 @@ export const sessions = pgTable(
 );
 
 // User storage table
+// NOTE: After Spotify-only OAuth migration, the following fields are deprecated:
+// - password, provider, providerId, resetToken, resetTokenExpiry (no longer used)
+// - All new users must have: spotifyId, spotifyAccessToken, spotifyRefreshToken, email
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique(), // Should be notNull after migration
   username: varchar("username").unique(),
-  password: varchar("password"), // For email/password auth
+  password: varchar("password"), // DEPRECATED: For email/password auth (no longer used)
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   avatarType: varchar("avatar_type").default("default"), // 'default', 'icon', 'upload'
   avatarIcon: varchar("avatar_icon"), // Selected predefined icon name
-  provider: varchar("provider").default("local"), // 'local', 'google', 'discord'
-  providerId: varchar("provider_id"), // ID from OAuth provider
+  provider: varchar("provider").default("local"), // DEPRECATED: always 'spotify' now
+  providerId: varchar("provider_id"), // DEPRECATED: use spotifyId instead
   birthDate: text("birth_date"),
   birthTime: text("birth_time"),
   birthLocation: text("birth_location"),
-  spotifyId: varchar("spotify_id"),
-  spotifyAccessToken: varchar("spotify_access_token"),
-  spotifyRefreshToken: varchar("spotify_refresh_token"),
+  spotifyId: varchar("spotify_id"), // Should be notNull after migration
+  spotifyAccessToken: varchar("spotify_access_token"), // Should be notNull after migration
+  spotifyRefreshToken: varchar("spotify_refresh_token"), // Should be notNull after migration
   spotifyTokenExpires: timestamp("spotify_token_expires"),
   musicProfile: jsonb("music_profile"),
-  // Password reset functionality
-  resetToken: varchar("reset_token"),
-  resetTokenExpiry: timestamp("reset_token_expiry"),
+  // Password reset functionality - DEPRECATED
+  resetToken: varchar("reset_token"), // DEPRECATED: no longer used
+  resetTokenExpiry: timestamp("reset_token_expiry"), // DEPRECATED: no longer used
   // Weekly limit tracking
   lastPlaylistGenerated: timestamp("last_playlist_generated"),
   lastPlaylistExported: timestamp("last_playlist_exported"),
@@ -117,6 +120,8 @@ export const astrologicalCharts = pgTable("astrological_charts", {
 });
 
 // Guest Rate Limits for email-based weekly playlist generation
+// DEPRECATED: No longer used after Spotify-only OAuth migration
+// All users must now authenticate with Spotify before generating playlists
 export const guestRateLimits = pgTable("guest_rate_limits", {
   id: serial("id").primaryKey(),
   email: varchar("email").notNull().unique(),
