@@ -46,7 +46,7 @@ export default function Landing() {
 
   // If already authenticated and has birth data, redirect to main app
   useEffect(() => {
-    if (user && user.birthDate && user.birthTime && user.birthLocation) {
+    if (user && (user as any).birthDate && (user as any).birthTime && (user as any).birthLocation) {
       setLocation('/');
     }
   }, [user, setLocation]);
